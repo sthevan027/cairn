@@ -1,5 +1,11 @@
 # Plano de execução
 
+> **Estado em 14/10/2026:** fases 1 a 4 implementadas (ver README e a seção "Arquitetura final"
+> da spec). A checklist abaixo é o plano original e não foi marcada item a item; os desvios
+> relevantes estão na spec (terminal sombra no lugar de um xterm por bloco; delay de 25 ms
+> em vez de buffer no backend; `PSConsoleHostReadLine` em vez de handler de Enter).
+> Pendências: chamada real à API, PowerShell 5.1, zsh, vim/less, `Ctrl+C` em bloco, remote no GitHub.
+
 Checklist concreto pra sair do papel. Baseado em [spec.md](spec.md). Cada fase tem
 tarefas marcáveis — ir riscando conforme avança.
 

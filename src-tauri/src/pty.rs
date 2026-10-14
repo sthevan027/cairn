@@ -59,6 +59,7 @@ pub struct SpawnInfo {
     id: u64,
     /// true quando o shell carregou a integração e emite os marcadores de bloco (OSC 9278).
     integrated: bool,
+    shell: String,
 }
 
 #[derive(PartialEq)]
@@ -181,7 +182,7 @@ pub fn spawn_shell(
         writer,
         child,
     });
-    Ok(SpawnInfo { id, integrated })
+    Ok(SpawnInfo { id, integrated, shell })
 }
 
 #[tauri::command]

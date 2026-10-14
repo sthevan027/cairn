@@ -38,7 +38,36 @@ Mesmo caminho de stack já usado no focusbrew.
 
 ## Status
 
-Fase de pesquisa/planejamento. Nenhum código ainda.
+As 4 fases estão implementadas e validadas no Windows (PowerShell 7 e Git Bash):
+
+1. PTY real (ConPTY via `portable-pty`) + xterm.js.
+2. Blocos de comando por marcadores OSC 9278 emitidos pelo shell (bash).
+3. O mesmo para PowerShell (embrulha `PSConsoleHostReadLine` e `prompt`, preserva `$?`).
+4. IA no prompt: `Ctrl+K`, descreve em português, a sugestão é colada no prompt **sem Enter**.
+
+**Ainda não verificado:** chamada real à API da Anthropic (sem chave na máquina de teste; o
+caminho HTTP foi coberto por um servidor mock), Windows PowerShell 5.1, zsh, programas de
+tela cheia (vim/less) e `Ctrl+C` dentro de blocos. Ver [docs/spec.md](docs/spec.md).
+
+## Como rodar
+
+```
+bun install
+bun run tauri dev      # abre o app (shell padrão: pwsh)
+bun run test           # testes do frontend (separador de OSC)
+cd src-tauri && cargo test   # PTY, ConPTY, integrações de shell, IA (mock), Credential Manager
+```
+
+Variáveis de ambiente (todas opcionais):
+
+| Variável | Efeito |
+|---|---|
+| `WARP_SHELL` | shell a abrir (ex.: `C:\Program Files\Git\bin\bash.exe`) |
+| `ANTHROPIC_API_KEY` | chave da IA se não houver uma no Credential Manager |
+| `WARP_AI_MODEL` | modelo da IA (padrão `claude-opus-5-5`, effort `low`) |
+| `ANTHROPIC_BASE_URL` | URL base da API (útil pra apontar pra um mock) |
+
+Na primeira vez, `Ctrl+K` pede a chave da Anthropic e a guarda no Credential Manager do Windows.
 
 ## Referências
 

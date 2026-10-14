@@ -1,3 +1,4 @@
+mod ai;
 mod pty;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -9,6 +10,10 @@ pub fn run() {
             pty::write_to_pty,
             pty::resize_pty,
             pty::kill_pty,
+            ai::suggest_command,
+            ai::has_api_key,
+            ai::set_api_key,
+            ai::clear_api_key,
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o warp-clone");

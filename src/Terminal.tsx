@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import "@xterm/xterm/css/xterm.css";
+import { AiBar } from "./AiBar";
 import { Session, type Block } from "./session";
 
 function formatDuration(ms: number): string {
@@ -21,12 +22,14 @@ function BlockView({ session, block }: { session: Session; block: Block }) {
             : `${block.exitCode === null ? "?" : `exit ${block.exitCode}`} · ${formatDuration(block.finishedAt! - block.startedAt)}`}
         </span>
       </header>
-      <div
-        className="clip"
-        ref={(el) => {
-          if (el) session.attachBlock(block.id, el);
-        }}
-      />
+      {session.hasBody(block.id) && (
+        <div
+          className="clip"
+          ref={(el) => {
+            if (el) session.attachBlock(block.id, el);
+          }}
+        />
+      )}
     </section>
   );
 }
@@ -38,23 +41,41 @@ export function Terminal() {
   const sizer = useRef<HTMLDivElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
-  const promptClip = useRef<HTMLDivElement>(null);
-  const promptHost = useRef<HTMLDivElement>(null);
+  const liveClip = useRef<HTMLDivElement>(null);
+  const liveHost = useRef<HTMLDivElement>(null);
+  const [aiOpen, setAiOpen] = useState(false);
 
   useEffect(() => {
     session.start({
       sizer: sizer.current!,
       scroll: scroll.current!,
       content: content.current!,
-      promptClip: promptClip.current!,
-      promptHost: promptHost.current!,
+      liveClip: liveClip.current!,
+      liveHost: liveHost.current!,
     });
     return () => session.dispose();
   }, [session]);
 
+  // Ctrl+K em fase de captura, antes do xterm (no bash seria "apagar até o fim da linha").
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        e.stopPropagation();
+        setAiOpen((open) => !open && session.isIdle());
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [session]);
+
+  useEffect(() => {
+    if (!aiOpen) session.focusActive();
+  }, [aiOpen, session]);
+
   return (
     <div
-      className="app"
+      className={`app${aiOpen ? " ai-open" : ""}`}
       onClick={() => {
         if (!window.getSelection()?.toString()) session.focusActive();
       }}
@@ -65,11 +86,12 @@ export function Terminal() {
           {blocks.map((block) => (
             <BlockView key={block.id} session={session} block={block} />
           ))}
-          <div className="prompt-clip" ref={promptClip}>
-            <div ref={promptHost} />
+          <div className="live-clip" ref={liveClip}>
+            <div ref={liveHost} />
           </div>
         </div>
       </div>
+      {aiOpen && <AiBar session={session} onClose={() => setAiOpen(false)} />}
     </div>
   );
 }

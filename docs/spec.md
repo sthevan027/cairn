@@ -6,6 +6,51 @@ terminal de verdade no dia a dia nesse estágio, não só em teste isolado.
 
 ---
 
+## Arquitetura final (o que foi construído e por que difere do plano)
+
+**Terminal sombra em vez de um terminal por bloco.** O plano original rodava um xterm.js por
+bloco e roteava os bytes entre eles. Isso quebrou com o PSReadLine do Sthevan
+(`PredictionViewStyle: ListView`): ele redesenha a linha com **posicionamento absoluto**
+(`ESC[8;4H` = linha 8 da tela do ConPTY), e coordenadas absolutas só fazem sentido num
+terminal que espelha a tela inteira do ConPTY. Com o fluxo fatiado, o prompt saía
+corrompido. Solução (mesma raiz do "grid do ConPTY" que o Warp resolveu forkando):
+
+- Um único terminal xterm "sombra" recebe **todos** os bytes, na ordem, e espelha o ConPTY.
+- Os marcadores só dizem *onde* (linha do buffer, via `IMarker`) cada comando começa e termina.
+- A região **ao vivo** (prompt, ou a saída de um comando em execução) é um recorte CSS do
+  terminal sombra, da linha do marcador até o cursor/último texto.
+- Ao terminar (`post`), as linhas do comando são copiadas com `@xterm/addon-serialize` para um
+  xterm estático (cores preservadas): isso vira o corpo do bloco.
+- Programa de tela cheia (buffer alternativo) esconde os blocos e mostra o terminal inteiro.
+
+Outros achados de implementação:
+
+- O xterm 6 usa o `ScrollableElement` do VS Code, que consome toda roda do mouse sobre ele;
+  a roda é interceptada em fase de captura no container e rola a página manualmente.
+- O ConPTY pergunta a posição do cursor (`ESC[6n`) na abertura; o xterm.js responde sozinho,
+  mas qualquer teste headless precisa responder `ESC[1;1R` senão o shell trava.
+- `$?` do PowerShell: o wrapper de `prompt` precisa devolvê-lo falso (via
+  `Write-Error -ErrorAction Ignore`) antes de chamar o prompt original, senão o oh-my-posh
+  nunca mostra erro.
+
+## Fase 4 — decisões tomadas
+
+- Modelo `claude-opus-5-5` com `output_config.effort = "low"` (pensamento não pode ser
+  desligado nesse modelo; effort baixo mantém a latência razoável). Trocável por `WARP_AI_MODEL`.
+- `fallbacks: "default"` + header `anthropic-beta: server-side-fallback-2026-07-01` só quando o
+  modelo é o padrão (para outros modelos o parâmetro pode dar 400). `stop_reason: "refusal"`
+  vira mensagem na barra.
+- Contexto enviado: pedido, shell, diretório atual e os últimos 5 comandos com exit code.
+  **Nunca** a saída dos comandos.
+- A sugestão é sanitizada (uma linha, sem controle/ESC/quebra) e colada com `term.paste()`:
+  nunca executa sozinha.
+- Chave: Credential Manager (`keyring`) → `ANTHROPIC_API_KEY`. O erro da API nunca ecoa a chave.
+- Sem SDK oficial para Rust: HTTP direto com `reqwest`, conforme a referência da API.
+- **Pendente:** validar com chave real; os testes cobrem corpo, headers, parsing, recusa e erro
+  via servidor mock.
+
+---
+
 ## Fase 1 — PTY básico
 
 ### Objetivo

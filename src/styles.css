@@ -46,7 +46,7 @@ body,
   scrollbar-color: var(--border) transparent;
 }
 
-.prompt-clip {
+.live-clip {
   overflow: hidden;
 }
 
@@ -97,4 +97,63 @@ body,
 /* Quem rola é o .scroll; esconde as barras internas do xterm. */
 .xterm .xterm-viewport {
   overflow: hidden !important;
+}
+
+.app.ai-open .scroll {
+  bottom: 56px;
+}
+
+.ai-bar {
+  position: absolute;
+  left: 10px;
+  right: 12px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid #7aa2f7;
+  border-radius: 6px;
+  background: var(--card);
+  font: 14px var(--mono);
+}
+
+.ai-label {
+  flex: none;
+  color: #7aa2f7;
+  font-weight: 700;
+}
+
+.ai-bar input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+}
+
+.ai-hint {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #565f89;
+  font-size: 12px;
+}
+
+.ai-hint.error {
+  color: var(--fail);
+}
+
+/* Programa de tela cheia (alternate screen): esconde os blocos e mostra só o terminal. */
+.alt .block {
+  display: none;
+}
+
+.ai-bar input::-ms-reveal {
+  display: none;
 }
