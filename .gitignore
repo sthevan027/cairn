@@ -1,0 +1,21 @@
+node_modules
+dist
+dist-ssr
+*.local
+*.log
+
+# Rust / Tauri
+src-tauri/target
+src-tauri/gen
+
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+# Chaves e config local (fase 4)
+.env
+.env.*
+
+# log local do tauri dev
+.tauri-dev.log

@@ -1,0 +1,20 @@
+:root {
+  --bg: #1a1b26;
+  --fg: #c0caf5;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+}
+
+.terminal-host {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 8px 0 0 10px;
+}
