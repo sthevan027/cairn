@@ -139,15 +139,24 @@ PowerShell não tem `precmd`/`preexec`. As opções reais:
   Mais fiel ao modelo precmd/preexec, mas depende do módulo PSReadLine estar
   carregado (é padrão desde PS 5.1+, então ok).
 
-**Decisão recomendada:** combinar os dois — PSReadLine key handler no Enter pra
-`preexec`, e override de `prompt` pra `precmd` (ali já se tem acesso a `$?`/
-`$LASTEXITCODE` pro exit code).
+**Decisão (implementada):** não usar o handler de Enter do PSReadLine. Ele roda *antes*
+da renderização final da linha, então o marcador chegaria no meio do texto. No lugar:
+- **preexec** = embrulhar a função `PSConsoleHostReadLine` (mesma técnica do shell
+  integration do VS Code). Roda depois que o PSReadLine devolve a linha, já renderizada
+  e com a quebra de linha feita.
+- **precmd** = embrulhar `prompt`. Detalhe crítico: os comandos do wrapper zeram `$?`,
+  e prompts como o oh-my-posh leem `$?` pra pintar o erro. O wrapper captura `$?` no
+  início e, se era falso, devolve com `Write-Error ... -ErrorAction Ignore` antes de
+  chamar o prompt original. Coberto por teste (`tests/pwsh_integration.rs`).
+- Enter vazio não gera bloco (o `pre` só sai pra linha não vazia).
+- O perfil do usuário **não** é desligado (sem `-NoProfile`): carrega normal e a
+  integração embrulha o `prompt` que ele definiu.
+- Limitação conhecida: o exit code de erro de *cmdlet* usa `$LASTEXITCODE` se ele for
+  diferente de zero; se um comando externo falhou antes, esse valor antigo pode aparecer.
 
 ### Escopo
-1. Script `.ps1` de integração, carregado via `$PROFILE` do perfil do app (não o
-   perfil pessoal do usuário — carregar explicitamente no spawn do PTY, passando
-   `-NoProfile` e depois dot-sourcing nosso script, pra não depender/poluir o
-   profile real do Sthevan).
+1. Script `.ps1` de integração (`integration/pwsh-integration.ps1`, só ASCII por causa
+   do Windows PowerShell 5.1), carregado no spawn via `-NoExit -Command ". 'script'"`.
 2. Mesmo formato de OSC da fase 2 (reaproveitar o parser do frontend sem mudanças).
 3. Exit code: `$LASTEXITCODE` pra comandos externos, `$?` como fallback (cmdlets
    PowerShell não setam `$LASTEXITCODE` sempre).

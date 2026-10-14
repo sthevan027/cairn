@@ -12,6 +12,7 @@ use tauri::{
 
 const BASH_INTEGRATION: &str = include_str!("../../integration/bash-integration.sh");
 const BASH_RC: &str = include_str!("../../integration/bash-rc.sh");
+const PWSH_INTEGRATION: &str = include_str!("../../integration/pwsh-integration.ps1");
 
 pub struct PtySession {
     master: Box<dyn MasterPty + Send>,
@@ -63,6 +64,7 @@ pub struct SpawnInfo {
 #[derive(PartialEq)]
 enum ShellKind {
     Bash,
+    PowerShell,
     Other,
 }
 
@@ -71,10 +73,10 @@ fn shell_kind(shell: &str) -> ShellKind {
         .file_stem()
         .map(|s| s.to_string_lossy().to_lowercase())
         .unwrap_or_default();
-    if stem == "bash" {
-        ShellKind::Bash
-    } else {
-        ShellKind::Other
+    match stem.as_str() {
+        "bash" => ShellKind::Bash,
+        "pwsh" | "powershell" => ShellKind::PowerShell,
+        _ => ShellKind::Other,
     }
 }
 
@@ -84,6 +86,7 @@ fn write_integration_scripts() -> Result<String, String> {
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     std::fs::write(dir.join("bash-integration.sh"), BASH_INTEGRATION).map_err(|e| e.to_string())?;
     std::fs::write(dir.join("bash-rc.sh"), BASH_RC).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join("pwsh-integration.ps1"), PWSH_INTEGRATION).map_err(|e| e.to_string())?;
     Ok(dir.to_string_lossy().replace('\\', "/"))
 }
 
@@ -122,6 +125,19 @@ pub fn spawn_shell(
             let dir = write_integration_scripts()?;
             cmd.args(["--rcfile", &format!("{dir}/bash-rc.sh"), "-i"]);
             cmd.env("WARP_CLONE_INTEGRATION", &dir);
+            true
+        }
+        ShellKind::PowerShell => {
+            // Sem -NoProfile: o perfil do usuário (ex. oh-my-posh) carrega e a integração o embrulha.
+            let dir = write_integration_scripts()?;
+            cmd.args([
+                "-NoLogo",
+                "-NoExit",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                &format!(". '{dir}/pwsh-integration.ps1'"),
+            ]);
             true
         }
         ShellKind::Other => false,
