@@ -19,3 +19,6 @@ src-tauri/gen
 
 # log local do tauri dev
 .tauri-dev.log
+
+# instaladores gerados (cada versao fica em releases/vX.Y.Z)
+releases/

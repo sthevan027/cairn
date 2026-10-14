@@ -121,6 +121,21 @@ Variáveis de ambiente (todas opcionais):
 
 Na primeira vez, `Ctrl+K` pede a chave da Anthropic e a guarda no Credential Manager do Windows.
 
+## Instalador
+
+`bun run tauri build` gera o instalador **NSIS** assinado em
+`src-tauri/target/release/bundle/nsis/Cairn_<versão>_x64-setup.exe` (instala por usuário, sem pedir
+administrador). A assinatura usa o certificado autoassinado `CN=Sthevan.Dev`
+(`certificateThumbprint` no `tauri.conf.json`, certificado no `CurrentUser\My`); o instalador, o `cairn.exe`
+embutido e o desinstalador saem `Valid`, com carimbo de tempo da DigiCert.
+
+- Só aparece como válido onde a raiz `Sthevan.Dev Root CA` é confiável (neste PC é). Não tira o aviso do
+  SmartScreen.
+- O `cairn.exe` solto em `target/release` fica sem assinatura: o Tauri assina uma cópia na hora de empacotar.
+  Para conferir, extraia o instalador (`7z x`) e rode `Get-AuthenticodeSignature` nos arquivos.
+- A cópia da versão atual fica em `releases/v0.1.0/` (fora do git).
+- Antes de gerar, feche o app de desenvolvimento (ele trava o `.exe`).
+
 ## Ícone
 
 A fonte é `assets/icon.svg`: três pedras empilhadas (o "cairn") nas cores do tema Cairn Night, num quadrado
