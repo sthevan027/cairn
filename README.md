@@ -62,6 +62,11 @@ tela cheia (vim/less) e `Ctrl+C` dentro de blocos. Ver [docs/spec.md](docs/spec.
 | `cmd` / `saída` (no cabeçalho do bloco) | copia o comando / a saída sem cores |
 | `repetir` | cola o comando do bloco no prompt (não executa) |
 | seta `▾` | recolhe/expande a saída do bloco |
+| `Ctrl+Shift+T` / `Ctrl+Shift+W` | nova aba / fecha a aba (Ctrl+T e Ctrl+W puros são do shell) |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | próxima / anterior aba |
+| `Ctrl+Shift+B` | recolhe/abre a barra lateral |
+| botão direito no `+` | escolhe o shell da nova aba (PowerShell 7, Windows PowerShell, Git Bash) |
+| duplo clique no título da aba | renomeia (vazio volta ao automático) |
 
 ## Como rodar
 

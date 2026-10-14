@@ -48,6 +48,23 @@ copia a seleção. Armadilhas encontradas no teste ao vivo:
   termina (`translateToString`), separada da cópia serializada com cores.
 - Fora do escopo por enquanto: abas, ícone próprio, atalhos de navegação entre blocos.
 
+## Abas e barra lateral (14/10/2026)
+
+Inspirado nas specs de produto do Warp (`specs/APP-3648`, `APP-3578`, `APP-3832` no repositório
+`warpdotdev/warp`; o framework de UI deles é MIT, o resto AGPL, então só o comportamento serviu
+de referência, nenhum código foi copiado).
+
+- **Backend:** `PtyState` virou um mapa de sessões por id; `write_to_pty`/`resize_pty`/`kill_pty`
+  recebem o id; `spawn_shell` não mata mais a anterior. Novos comandos: `git_branch(cwd)`
+  (aceita o `/c/...` do Git Bash) e `available_shells()` (menu do `+`).
+- **Frontend:** uma `Session` por aba. Abas inativas ficam montadas com `visibility:hidden` (não
+  `display:none`, pelo mesmo motivo do filtro de busca) e só a ativa pega o foco do teclado.
+- **Item da aba:** título = comando em execução, senão a pasta do cwd, senão "Terminal"; subtítulo =
+  branch git, senão o nome do shell; selo de status: spinner (rodando), verde (ok), vermelho (erro).
+- `exit` no shell fecha a aba; fechar a última cria outra.
+- Atalhos usam Ctrl+Shift porque Ctrl+T/W/B puros são do readline (transpor, apagar palavra, voltar).
+- Fora do escopo: painéis divididos, "hover detail", configurações e tema (próximas fatias).
+
 ## Fase 4 — decisões tomadas
 
 - Modelo `claude-opus-5-5` com `output_config.effort = "low"` (pensamento não pode ser

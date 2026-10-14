@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import "@xterm/xterm/css/xterm.css";
 import { AiBar } from "./AiBar";
 import { SearchBar } from "./SearchBar";
@@ -82,8 +82,14 @@ function BlockView({ session, block, collapsed, hidden, onToggle }: BlockViewPro
   );
 }
 
-export function Terminal() {
-  const session = useMemo(() => new Session(), []);
+interface TabViewProps {
+  session: Session;
+  active: boolean;
+  shell: string | null;
+}
+
+/** Uma aba: os blocos, o prompt ao vivo e as barras de IA/busca. Abas inativas ficam montadas e invisíveis. */
+export function TabView({ session, active, shell }: TabViewProps) {
   const blocks = useSyncExternalStore(session.subscribe, session.getSnapshot);
 
   const sizer = useRef<HTMLDivElement>(null);
@@ -96,19 +102,28 @@ export function Terminal() {
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    session.start({
-      sizer: sizer.current!,
-      scroll: scroll.current!,
-      content: content.current!,
-      liveClip: liveClip.current!,
-      liveHost: liveHost.current!,
-    });
+    void session.start(
+      {
+        sizer: sizer.current!,
+        scroll: scroll.current!,
+        content: content.current!,
+        liveClip: liveClip.current!,
+        liveHost: liveHost.current!,
+      },
+      shell ?? undefined,
+    );
     return () => session.dispose();
+    // o shell só vale na criação da aba
   }, [session]);
+
+  useEffect(() => {
+    session.setActive(active);
+  }, [active, session]);
 
   // Atalhos em fase de captura, antes do xterm (Ctrl+K seria "apagar até o fim da linha" no bash,
   // Ctrl+C sem seleção precisa continuar interrompendo o comando).
   useEffect(() => {
+    if (!active) return;
     const onKey = (e: KeyboardEvent) => {
       if (!e.ctrlKey || e.altKey) return;
       const key = e.key.toLowerCase();
@@ -127,7 +142,7 @@ export function Terminal() {
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [session]);
+  }, [session, active]);
 
   useEffect(() => {
     if (bar === "none") session.focusActive();
@@ -138,7 +153,7 @@ export function Terminal() {
 
   return (
     <div
-      className={`app${bar !== "none" ? " bar-open" : ""}`}
+      className={`app${bar !== "none" ? " bar-open" : ""}${active ? "" : " inactive"}`}
       onClick={() => {
         if (!window.getSelection()?.toString()) session.focusActive();
       }}

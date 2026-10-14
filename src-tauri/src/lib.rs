@@ -1,4 +1,5 @@
 mod ai;
+mod info;
 mod pty;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -14,6 +15,8 @@ pub fn run() {
             ai::has_api_key,
             ai::set_api_key,
             ai::clear_api_key,
+            info::git_branch,
+            info::available_shells,
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o cairn");

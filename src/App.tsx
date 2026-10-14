@@ -1,5 +1,5 @@
-import { Terminal } from "./Terminal";
+import { Workspace } from "./Workspace";
 
 export default function App() {
-  return <Terminal />;
+  return <Workspace />;
 }

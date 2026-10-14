@@ -1,5 +1,6 @@
 use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize};
 use std::{
+    collections::HashMap,
     io::{Read, Write},
     path::PathBuf,
     sync::Mutex,
@@ -20,13 +21,28 @@ pub struct PtySession {
     child: Box<dyn Child + Send + Sync>,
 }
 
+/// Uma sessão de PTY por aba, indexadas por id.
 #[derive(Default)]
 pub struct PtyState {
-    session: Mutex<Option<PtySession>>,
+    sessions: Mutex<HashMap<u64, PtySession>>,
     next_id: Mutex<u64>,
 }
 
-fn find_in_path(exe: &str) -> Option<PathBuf> {
+impl PtyState {
+    fn allocate_id(&self) -> u64 {
+        let mut next = self.next_id.lock().unwrap();
+        *next += 1;
+        *next
+    }
+
+    fn kill(&self, id: u64) {
+        if let Some(mut session) = self.sessions.lock().unwrap().remove(&id) {
+            let _ = session.child.kill();
+        }
+    }
+}
+
+pub(crate) fn find_in_path(exe: &str) -> Option<PathBuf> {
     let path = std::env::var_os("PATH")?;
     std::env::split_paths(&path)
         .map(|dir| dir.join(exe))
@@ -111,8 +127,6 @@ pub fn spawn_shell(
     rows: u16,
     shell: Option<String>,
 ) -> Result<SpawnInfo, String> {
-    kill_current(&state);
-
     let pair = native_pty_system()
         .openpty(size(cols, rows))
         .map_err(|e| e.to_string())?;
@@ -153,11 +167,7 @@ pub fn spawn_shell(
     let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
     let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
 
-    let id = {
-        let mut next = state.next_id.lock().unwrap();
-        *next += 1;
-        *next
-    };
+    let id = state.allocate_id();
 
     std::thread::spawn(move || {
         let mut buf = [0u8; 8192];
@@ -177,18 +187,21 @@ pub fn spawn_shell(
         let _ = app.emit("pty-exit", id);
     });
 
-    *state.session.lock().unwrap() = Some(PtySession {
-        master: pair.master,
-        writer,
-        child,
-    });
+    state.sessions.lock().unwrap().insert(
+        id,
+        PtySession {
+            master: pair.master,
+            writer,
+            child,
+        },
+    );
     Ok(SpawnInfo { id, integrated, shell })
 }
 
 #[tauri::command]
-pub fn write_to_pty(state: State<PtyState>, data: String) -> Result<(), String> {
-    let mut guard = state.session.lock().unwrap();
-    let session = guard.as_mut().ok_or("nenhuma sessão de PTY ativa")?;
+pub fn write_to_pty(state: State<PtyState>, id: u64, data: String) -> Result<(), String> {
+    let mut sessions = state.sessions.lock().unwrap();
+    let session = sessions.get_mut(&id).ok_or("sessão de PTY inexistente")?;
     session
         .writer
         .write_all(data.as_bytes())
@@ -197,9 +210,9 @@ pub fn write_to_pty(state: State<PtyState>, data: String) -> Result<(), String> 
 }
 
 #[tauri::command]
-pub fn resize_pty(state: State<PtyState>, cols: u16, rows: u16) -> Result<(), String> {
-    let guard = state.session.lock().unwrap();
-    let session = guard.as_ref().ok_or("nenhuma sessão de PTY ativa")?;
+pub fn resize_pty(state: State<PtyState>, id: u64, cols: u16, rows: u16) -> Result<(), String> {
+    let sessions = state.sessions.lock().unwrap();
+    let session = sessions.get(&id).ok_or("sessão de PTY inexistente")?;
     session
         .master
         .resize(size(cols, rows))
@@ -207,14 +220,8 @@ pub fn resize_pty(state: State<PtyState>, cols: u16, rows: u16) -> Result<(), St
 }
 
 #[tauri::command]
-pub fn kill_pty(state: State<PtyState>) {
-    kill_current(&state);
-}
-
-fn kill_current(state: &PtyState) {
-    if let Some(mut session) = state.session.lock().unwrap().take() {
-        let _ = session.child.kill();
-    }
+pub fn kill_pty(state: State<PtyState>, id: u64) {
+    state.kill(id);
 }
 
 #[cfg(test)]
@@ -265,5 +272,40 @@ mod tests {
         let text = String::from_utf8_lossy(&out);
         // 1ª ocorrência = eco do que foi digitado; 2ª = saída do comando
         assert!(text.matches("marcador-warp-123").count() >= 2, "saída: {text}");
+    }
+}
+
+#[cfg(test)]
+mod manager_tests {
+    use super::*;
+
+    fn real_session() -> PtySession {
+        let pair = native_pty_system().openpty(size(80, 24)).unwrap();
+        let mut cmd = CommandBuilder::new(default_shell());
+        if cfg!(windows) {
+            cmd.args(["-NoLogo", "-NoProfile"]);
+        }
+        let child = pair.slave.spawn_command(cmd).unwrap();
+        let writer = pair.master.take_writer().unwrap();
+        PtySession { master: pair.master, writer, child }
+    }
+
+    #[test]
+    fn varias_sessoes_convivem_e_cada_uma_morre_sozinha() {
+        let state = PtyState::default();
+        let (a, b) = (state.allocate_id(), state.allocate_id());
+        assert_ne!(a, b);
+        state.sessions.lock().unwrap().insert(a, real_session());
+        state.sessions.lock().unwrap().insert(b, real_session());
+
+        state.kill(a);
+        {
+            let sessions = state.sessions.lock().unwrap();
+            assert!(!sessions.contains_key(&a), "a sessao morta saiu do mapa");
+            assert!(sessions.contains_key(&b), "a outra continua viva");
+        }
+        state.kill(b);
+        assert!(state.sessions.lock().unwrap().is_empty());
+        state.kill(999); // id inexistente nao pode dar panico
     }
 }

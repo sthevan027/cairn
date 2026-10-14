@@ -248,3 +248,285 @@ body,
   font: 12px var(--mono);
   cursor: pointer;
 }
+
+/* ---- abas e barra lateral ---- */
+:root {
+  --side: #16161e;
+  --side-hover: #1c1e2b;
+  --side-active: #24283b;
+  --muted: #565f89;
+  --ui: "Segoe UI", system-ui, sans-serif;
+}
+
+.workspace {
+  display: flex;
+  height: 100%;
+}
+
+.tabs-area {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.tabs-area > .app {
+  position: absolute;
+  inset: 0;
+  height: auto;
+}
+
+.app.inactive {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sidebar {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 248px;
+  border-right: 1px solid var(--border);
+  background: var(--side);
+}
+
+.sidebar.collapsed {
+  width: 46px;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.side-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+}
+
+.icon-btn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9aa5ce;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--side-active);
+  color: var(--fg);
+}
+
+.side-search {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.side-search:focus-within {
+  border-color: #7aa2f7;
+}
+
+.side-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--fg);
+  font: 13px var(--ui);
+}
+
+.side-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px 8px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.tab-item:hover {
+  background: var(--side-hover);
+}
+
+.tab-item.active {
+  background: var(--side-active);
+}
+
+.avatar {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #292e42;
+  color: #9aa5ce;
+  font: 700 11px var(--mono);
+}
+
+.avatar .badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: none;
+  box-sizing: border-box;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--side);
+  border-radius: 50%;
+}
+
+.tab-item.active .avatar .badge {
+  border-color: var(--side-active);
+}
+
+.avatar.ok .badge {
+  display: block;
+  background: var(--ok);
+}
+
+.avatar.fail .badge {
+  display: block;
+  background: var(--fail);
+}
+
+.avatar.running .badge {
+  display: block;
+  border-color: var(--running) var(--running) transparent transparent;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tab-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-family: var(--ui);
+}
+
+.tab-title {
+  overflow: hidden;
+  color: var(--fg);
+  font-size: 13.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.tab-sub span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-rename {
+  width: 100%;
+  padding: 1px 4px;
+  border: 1px solid #7aa2f7;
+  border-radius: 4px;
+  outline: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13.5px var(--ui);
+}
+
+.tab-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.tab-item:hover .tab-close {
+  opacity: 1;
+}
+
+.tab-close:hover {
+  background: var(--border);
+  color: var(--fg);
+}
+
+.shell-menu {
+  position: absolute;
+  top: 46px;
+  right: 8px;
+  z-index: 10;
+  min-width: 190px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.shell-menu button {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font: 13px var(--ui);
+  text-align: left;
+  cursor: pointer;
+}
+
+.shell-menu button:hover {
+  background: var(--side-active);
+}
+
+.shell-empty {
+  padding: 7px 10px;
+  color: var(--muted);
+  font: 13px var(--ui);
+}

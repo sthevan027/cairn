@@ -5,6 +5,22 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { OscSplitter, type Marker } from "./osc";
 
+export type TabStatus = "idle" | "running" | "ok" | "fail";
+
+/** O que a barra lateral mostra de uma aba. */
+export interface TabMeta {
+  title: string;
+  subtitle: string;
+  status: TabStatus;
+  cwd: string | null;
+  branch: string | null;
+}
+
+function folderName(path: string): string {
+  const parts = path.split(/[\\/]/).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : path;
+}
+
 export interface Block {
   id: number;
   command: string;
@@ -84,6 +100,11 @@ export class Session {
   private rows = 24;
   private cellHeight = 17;
   private integrated = false;
+  private active = true;
+  private branch: string | null = null;
+  private meta: TabMeta = { title: "Terminal", subtitle: "", status: "idle", cwd: null, branch: null };
+  /** Chamado quando o shell termina sozinho (ex.: `exit`); o workspace fecha a aba. */
+  onShellExit: (() => void) | null = null;
   private shell = "";
   private sessionId: number | null = null;
   private stick = true;
@@ -98,6 +119,7 @@ export class Session {
     return () => this.listeners.delete(listener);
   };
   getSnapshot = () => this.blocks;
+  getMeta = () => this.meta;
 
   hasBody(id: number) {
     return this.statics.has(id);
@@ -128,13 +150,14 @@ export class Session {
     this.meter.term.loadAddon(this.meter.fit);
     this.meter.term.open(els.sizer);
     await document.fonts.ready;
+    if (this.disposed) return;
     this.measure();
 
     this.shadow = new XTerm({ ...TERM_OPTIONS, cols: this.cols, rows: this.rows, scrollback: 10_000 });
     this.shadow.loadAddon(this.serializer);
     this.shadow.onData((data) => {
-      if (FOCUS_REPORTS.has(data)) return;
-      invoke("write_to_pty", { data }).catch(() => {});
+      if (FOCUS_REPORTS.has(data) || this.sessionId === null) return;
+      invoke("write_to_pty", { id: this.sessionId, data }).catch(() => {});
     });
     this.shadow.open(els.liveHost);
     this.liveStart = this.shadow.registerMarker(0);
@@ -185,9 +208,15 @@ export class Session {
         shell: shell ?? null,
       });
       this.sessionId = info.id;
+      if (this.disposed) {
+        // A aba foi fechada antes do shell terminar de subir.
+        invoke("kill_pty", { id: info.id }).catch(() => {});
+        return;
+      }
       this.integrated = info.integrated;
       this.shell = info.shell;
       this.applyMode();
+      this.emit();
     } catch (err) {
       this.shadow.write(`\r\n[erro ao abrir o shell: ${err}]\r\n`);
     }
@@ -198,14 +227,14 @@ export class Session {
     this.disposed = true;
     cancelAnimationFrame(this.rafId);
     this.disposers.forEach((fn) => fn());
-    invoke("kill_pty").catch(() => {});
+    if (this.sessionId !== null) invoke("kill_pty", { id: this.sessionId }).catch(() => {});
     this.statics.forEach((s) => s.term.dispose());
     this.shadow?.dispose();
     this.meter?.term.dispose();
   }
 
   focusActive() {
-    this.shadow?.focus();
+    if (this.active) this.shadow?.focus();
   }
 
   /** Sem comando rodando: só então faz sentido pedir uma sugestão à IA. */
@@ -322,11 +351,57 @@ export class Session {
     this.emit();
     this.scheduleLayout();
     this.focusActive();
+    void this.refreshBranch();
+  }
+
+  private async refreshBranch() {
+    if (!this.lastCwd) return;
+    const branch = await invoke<string | null>("git_branch", { cwd: this.lastCwd }).catch(() => null);
+    if (this.disposed || branch === this.branch) return;
+    this.branch = branch;
+    this.emit();
   }
 
   private onExit() {
     if (this.current) this.finishBlock(null, null);
     this.shadow.write("\r\n[processo encerrado]\r\n");
+    this.onShellExit?.();
+  }
+
+  private computeMeta(): TabMeta {
+    const running = this.current ? this.blocks.find((b) => b.id === this.current!.id) : undefined;
+    const lastDone = [...this.blocks].reverse().find((b) => b.finishedAt !== null);
+    const status: TabStatus = running
+      ? "running"
+      : !lastDone || lastDone.exitCode === null
+        ? "idle"
+        : lastDone.exitCode === 0
+          ? "ok"
+          : "fail";
+    const next: TabMeta = {
+      title: running ? running.command : this.lastCwd ? folderName(this.lastCwd) : "Terminal",
+      subtitle: this.branch ?? folderName(this.shell),
+      status,
+      cwd: this.lastCwd,
+      branch: this.branch,
+    };
+    const prev = this.meta;
+    const same =
+      prev.title === next.title &&
+      prev.subtitle === next.subtitle &&
+      prev.status === next.status &&
+      prev.cwd === next.cwd &&
+      prev.branch === next.branch;
+    return same ? prev : next;
+  }
+
+  /** Só a aba ativa pega o foco do teclado; as outras continuam rodando em segundo plano. */
+  setActive(active: boolean) {
+    this.active = active;
+    if (active) {
+      this.focusActive();
+      this.scheduleLayout();
+    }
   }
 
   // ---- layout ----
@@ -349,7 +424,9 @@ export class Session {
     this.measure();
     if (cols === this.cols && rows === this.rows) return;
     this.shadow.resize(this.cols, this.rows);
-    invoke("resize_pty", { cols: this.cols, rows: this.rows }).catch(() => {});
+    if (this.sessionId !== null) {
+      invoke("resize_pty", { id: this.sessionId, cols: this.cols, rows: this.rows }).catch(() => {});
+    }
     this.scheduleLayout();
   }
 
@@ -425,6 +502,7 @@ export class Session {
   }
 
   private emit() {
+    this.meta = this.computeMeta();
     this.listeners.forEach((fn) => fn());
   }
 }
