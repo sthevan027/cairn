@@ -530,3 +530,44 @@ body,
   color: var(--muted);
   font: 13px var(--ui);
 }
+
+/* ---- barra recolhida: coluna de ícones das abas ---- */
+.sidebar.collapsed {
+  gap: 4px;
+}
+
+.rail-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding-top: 6px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.rail-item {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.rail-item:hover {
+  background: var(--side-hover);
+}
+
+.rail-item.active {
+  background: var(--side-active);
+}
+
+.avatar svg {
+  display: block;
+}

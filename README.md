@@ -67,6 +67,8 @@ tela cheia (vim/less) e `Ctrl+C` dentro de blocos. Ver [docs/spec.md](docs/spec.
 | `Ctrl+Shift+B` | recolhe/abre a barra lateral |
 | botão direito no `+` | escolhe o shell da nova aba (PowerShell 7, Windows PowerShell, Git Bash) |
 | duplo clique no título da aba | renomeia (vazio volta ao automático) |
+| barra lateral recolhida | vira uma coluna de ícones das abas (nome e branch no tooltip), com o `+` embaixo |
+| ícone da aba | mostra o programa em execução (claude, git, node, python, cargo, docker, vim, ssh...); no prompt, `>_` |
 
 ## Como rodar
 

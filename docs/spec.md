@@ -61,6 +61,13 @@ de referência, nenhum código foi copiado).
   `display:none`, pelo mesmo motivo do filtro de busca) e só a ativa pega o foco do teclado.
 - **Item da aba:** título = comando em execução, senão a pasta do cwd, senão "Terminal"; subtítulo =
   branch git, senão o nome do shell; selo de status: spinner (rodando), verde (ok), vermelho (erro).
+- **Ícone por programa:** `programOf(comando)` (`src/programs.ts`, testado) olha o primeiro termo do
+  comando em execução, ignorando caminho, extensão, `VAR=x` e wrappers (`sudo`, `time`...), e o
+  avatar troca `>_` pelo ícone (Claude, git, node, python, rust, docker, editor, ssh, agentes).
+  Só vale enquanto o comando roda; no prompt volta ao `>_`. Os traços são desenhos simples, não os
+  logotipos oficiais.
+- **Barra recolhida:** coluna de ícones das abas (mesmo avatar e selo de status), `+` no fim da lista,
+  nome e branch no tooltip, clique do meio fecha.
 - `exit` no shell fecha a aba; fechar a última cria outra.
 - Atalhos usam Ctrl+Shift porque Ctrl+T/W/B puros são do readline (transpor, apagar palavra, voltar).
 - Fora do escopo: painéis divididos, "hover detail", configurações e tema (próximas fatias).

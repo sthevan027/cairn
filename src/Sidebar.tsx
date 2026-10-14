@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { BranchIcon, CloseIcon, PanelIcon, PlusIcon, SearchIcon } from "./icons";
+import { BranchIcon, CloseIcon, PanelIcon, PlusIcon, ProgramIcon, SearchIcon } from "./icons";
+import { programOf } from "./programs";
 import { matchesQuery } from "./search";
-import type { Session } from "./session";
+import type { Session, TabMeta } from "./session";
 
 export interface SidebarTab {
   id: number;
@@ -22,6 +23,45 @@ interface ItemProps {
   onSelect: () => void;
   onClose: () => void;
   onRename: (name: string | null) => void;
+}
+
+/** Círculo da aba: ícone do programa em execução (ou `>_` no prompt) e o selo de status. */
+function TabAvatar({ meta }: { meta: TabMeta }) {
+  const program = meta.status === "running" ? programOf(meta.title) : null;
+  return (
+    <span className={`avatar ${meta.status}`}>
+      {program ? <ProgramIcon program={program} /> : <span className="glyph">&gt;_</span>}
+      <span className="badge" />
+    </span>
+  );
+}
+
+interface RailItemProps {
+  tab: SidebarTab;
+  active: boolean;
+  onSelect: () => void;
+  onClose: () => void;
+}
+
+/** Aba na barra recolhida: só o ícone, com o nome no tooltip. */
+function RailItem({ tab, active, onSelect, onClose }: RailItemProps) {
+  const meta = useSyncExternalStore(tab.session.subscribe, tab.session.getMeta);
+  const label = [tab.name ?? meta.title, meta.branch].filter(Boolean).join(" · ");
+  return (
+    <button
+      className={`rail-item${active ? " active" : ""}`}
+      title={label}
+      onClick={onSelect}
+      onAuxClick={(e) => {
+        if (e.button === 1) {
+          e.preventDefault();
+          onClose();
+        }
+      }}
+    >
+      <TabAvatar meta={meta} />
+    </button>
+  );
 }
 
 function Item({ tab, active, query, onSelect, onClose, onRename }: ItemProps) {
@@ -49,10 +89,7 @@ function Item({ tab, active, query, onSelect, onClose, onRename }: ItemProps) {
         }
       }}
     >
-      <span className={`avatar ${meta.status}`}>
-        <span className="glyph">&gt;_</span>
-        <span className="badge" />
-      </span>
+      <TabAvatar meta={meta} />
       <span className="tab-text">
         {editing ? (
           <input
@@ -156,7 +193,18 @@ export function Sidebar({ tabs, activeId, open, onToggle, onSelect, onClose, onN
     return (
       <aside className="sidebar collapsed">
         {toggle}
-        {plus}
+        <div className="rail-list">
+          {tabs.map((tab) => (
+            <RailItem
+              key={tab.id}
+              tab={tab}
+              active={tab.id === activeId}
+              onSelect={() => onSelect(tab.id)}
+              onClose={() => onClose(tab.id)}
+            />
+          ))}
+          {plus}
+        </div>
       </aside>
     );
   }
