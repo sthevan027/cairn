@@ -1,6 +1,12 @@
 :root {
   --bg: #1a1b26;
   --fg: #c0caf5;
+  --card: #1f2335;
+  --border: #2a2e45;
+  --ok: #9ece6a;
+  --fail: #f7768e;
+  --running: #e0af68;
+  --mono: "CaskaydiaCove Nerd Font Mono", "Cascadia Code", Consolas, monospace;
 }
 
 html,
@@ -13,8 +19,82 @@ body,
   overflow: hidden;
 }
 
-.terminal-host {
+.app {
+  position: relative;
   height: 100%;
-  box-sizing: border-box;
-  padding: 8px 0 0 10px;
+}
+
+/* Mede a área útil (cols/rows do PTY); invisível e sem interação. */
+.sizer,
+.scroll {
+  position: absolute;
+  top: 8px;
+  bottom: 0;
+  left: 10px;
+}
+
+.sizer {
+  right: 14px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.scroll {
+  right: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.prompt-clip {
+  overflow: hidden;
+}
+
+.block {
+  margin: 0 12px 10px 0;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.block.ok {
+  --accent: var(--ok);
+}
+.block.fail {
+  --accent: var(--fail);
+}
+.block.running {
+  --accent: var(--running);
+}
+
+.block header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 10px;
+  background: var(--card);
+  font: 600 13px var(--mono);
+}
+
+.block .cmd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.block .meta {
+  flex: none;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.block .clip {
+  overflow: hidden;
+  padding: 0 10px;
+}
+
+/* Quem rola é o .scroll; esconde as barras internas do xterm. */
+.xterm .xterm-viewport {
+  overflow: hidden !important;
 }

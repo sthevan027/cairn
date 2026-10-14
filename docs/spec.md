@@ -72,15 +72,19 @@ Têm hook nativo (`precmd`/`preexec` no zsh/fish) ou via script conhecido
      do comando.
    - depois do comando terminar (precmd), antes do próximo prompt → marca "fim de
      bloco", com exit code e timestamp.
-2. **Formato da sequência de escape:** OSC customizado (mais compatível que DCS —
-   o próprio Warp migrou pra OSC no Windows por causa do ConPTY; usar OSC desde já
-   evita reescrever depois). Ex:
+2. **Formato da sequência de escape (DECIDIDO):** OSC privado `9278` (OSC e não DCS:
+   o ConPTY descarta DCS desconhecida, mas repassa OSC). O payload é texto simples com
+   base64 nos campos livres, porque montar JSON dentro de bash é frágil:
    ```
-   ESC ] 9278 ; {"event":"preexec","cmd":"ls -la"} BEL
-   ESC ] 9278 ; {"event":"precmd","exit_code":0,"duration_ms":120} BEL
+   ESC ] 9278 ; pre  ; <base64 do comando>            BEL   (antes de executar)
+   ESC ] 9278 ; post ; <exit code> ; <base64 do cwd>  BEL   (depois, antes do prompt)
    ```
-   (número `9278` é só um placeholder de "código de OSC privado" — qualquer um não
-   reservado serve, documentar a escolha quando decidir).
+   **Achado medido (ConPTY):** o OSC é entregue na hora, mas o texto só é renderizado no
+   frame seguinte (~16ms), então o marcador chega *antes* do texto que o precede.
+   Teste de estresse com 200 sequências texto→OSC→texto: **0 ms de atraso = 199 fora de
+   ordem; 5 ms = 8; 20 ms = 0**. A integração faz `sleep 0.025` antes de cada OSC. É a
+   versão "sem fork" do problema que o Warp resolveu forkando o ConPTY
+   (`src-tauri/tests/conpty_osc.rs`).
 3. **Parser no lado do xterm.js:** usar a API de parser customizado do xterm.js
    (`registerOscHandler`) pra capturar essas sequências sem quebrar o parsing VT100
    normal.

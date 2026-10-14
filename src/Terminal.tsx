@@ -1,72 +1,75 @@
-import { useEffect, useRef } from "react";
-import { Terminal as XTerm } from "@xterm/xterm";
-import { FitAddon } from "@xterm/addon-fit";
-import { Channel, invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import "@xterm/xterm/css/xterm.css";
+import { Session, type Block } from "./session";
 
-export const TERMINAL_THEME = {
-  background: "#1a1b26",
-  foreground: "#c0caf5",
-  cursor: "#c0caf5",
-  selectionBackground: "#33467c",
-};
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const s = ms / 1000;
+  return s < 60 ? `${s.toFixed(1)}s` : `${Math.floor(s / 60)}m${Math.round(s % 60)}s`;
+}
+
+function BlockView({ session, block }: { session: Session; block: Block }) {
+  const running = block.finishedAt === null;
+  const state = running ? "running" : block.exitCode === 0 ? "ok" : "fail";
+  return (
+    <section className={`block ${state}`}>
+      <header>
+        <span className="cmd">{block.command}</span>
+        <span className="meta">
+          {running
+            ? "executando…"
+            : `${block.exitCode === null ? "?" : `exit ${block.exitCode}`} · ${formatDuration(block.finishedAt! - block.startedAt)}`}
+        </span>
+      </header>
+      <div
+        className="clip"
+        ref={(el) => {
+          if (el) session.attachBlock(block.id, el);
+        }}
+      />
+    </section>
+  );
+}
 
 export function Terminal() {
-  const hostRef = useRef<HTMLDivElement>(null);
+  const session = useMemo(() => new Session(), []);
+  const blocks = useSyncExternalStore(session.subscribe, session.getSnapshot);
+
+  const sizer = useRef<HTMLDivElement>(null);
+  const scroll = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
+  const promptClip = useRef<HTMLDivElement>(null);
+  const promptHost = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
-
-    const term = new XTerm({
-      fontFamily: '"CaskaydiaCove Nerd Font Mono", "Cascadia Code", Consolas, monospace',
-      fontSize: 14,
-      cursorBlink: true,
-      scrollback: 10_000,
-      theme: TERMINAL_THEME,
+    session.start({
+      sizer: sizer.current!,
+      scroll: scroll.current!,
+      content: content.current!,
+      promptClip: promptClip.current!,
+      promptHost: promptHost.current!,
     });
-    const fit = new FitAddon();
-    term.loadAddon(fit);
-    term.open(host);
-    fit.fit();
+    return () => session.dispose();
+  }, [session]);
 
-    const output = new Channel<ArrayBuffer>();
-    output.onmessage = (data) => term.write(new Uint8Array(data));
-
-    let sessionId: number | null = null;
-    invoke<number>("spawn_shell", {
-      onOutput: output,
-      cols: term.cols,
-      rows: term.rows,
-    })
-      .then((id) => (sessionId = id))
-      .catch((err) => term.write(`\r\n[erro ao abrir o shell: ${err}]\r\n`));
-
-    const onData = term.onData((data) => {
-      invoke("write_to_pty", { data }).catch(() => {});
-    });
-    const onResize = term.onResize(({ cols, rows }) => {
-      invoke("resize_pty", { cols, rows }).catch(() => {});
-    });
-    const observer = new ResizeObserver(() => fit.fit());
-    observer.observe(host);
-
-    const unlistenExit = listen<number>("pty-exit", (event) => {
-      if (event.payload === sessionId) term.write("\r\n[processo encerrado]\r\n");
-    });
-
-    term.focus();
-
-    return () => {
-      observer.disconnect();
-      onData.dispose();
-      onResize.dispose();
-      unlistenExit.then((fn) => fn());
-      invoke("kill_pty").catch(() => {});
-      term.dispose();
-    };
-  }, []);
-
-  return <div className="terminal-host" ref={hostRef} />;
+  return (
+    <div
+      className="app"
+      onClick={() => {
+        if (!window.getSelection()?.toString()) session.focusActive();
+      }}
+    >
+      <div className="sizer" ref={sizer} />
+      <div className="scroll" ref={scroll}>
+        <div ref={content}>
+          {blocks.map((block) => (
+            <BlockView key={block.id} session={session} block={block} />
+          ))}
+          <div className="prompt-clip" ref={promptClip}>
+            <div ref={promptHost} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -4,10 +4,14 @@ use std::{
     path::PathBuf,
     sync::Mutex,
 };
+use serde::Serialize;
 use tauri::{
     ipc::{Channel, InvokeResponseBody},
     AppHandle, Emitter, State,
 };
+
+const BASH_INTEGRATION: &str = include_str!("../../integration/bash-integration.sh");
+const BASH_RC: &str = include_str!("../../integration/bash-rc.sh");
 
 pub struct PtySession {
     master: Box<dyn MasterPty + Send>,
@@ -49,6 +53,40 @@ fn home_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
+#[derive(Serialize)]
+pub struct SpawnInfo {
+    id: u64,
+    /// true quando o shell carregou a integração e emite os marcadores de bloco (OSC 9278).
+    integrated: bool,
+}
+
+#[derive(PartialEq)]
+enum ShellKind {
+    Bash,
+    Other,
+}
+
+fn shell_kind(shell: &str) -> ShellKind {
+    let stem = std::path::Path::new(shell)
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    if stem == "bash" {
+        ShellKind::Bash
+    } else {
+        ShellKind::Other
+    }
+}
+
+/// Grava os scripts de integração numa pasta temporária e devolve o caminho (com `/`).
+fn write_integration_scripts() -> Result<String, String> {
+    let dir = std::env::temp_dir().join("warp-clone").join("integration");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join("bash-integration.sh"), BASH_INTEGRATION).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join("bash-rc.sh"), BASH_RC).map_err(|e| e.to_string())?;
+    Ok(dir.to_string_lossy().replace('\\', "/"))
+}
+
 fn size(cols: u16, rows: u16) -> PtySize {
     PtySize {
         rows,
@@ -68,16 +106,26 @@ pub fn spawn_shell(
     cols: u16,
     rows: u16,
     shell: Option<String>,
-) -> Result<u64, String> {
+) -> Result<SpawnInfo, String> {
     kill_current(&state);
 
     let pair = native_pty_system()
         .openpty(size(cols, rows))
         .map_err(|e| e.to_string())?;
 
-    let mut cmd = CommandBuilder::new(shell.unwrap_or_else(default_shell));
+    let shell = shell.unwrap_or_else(default_shell);
+    let mut cmd = CommandBuilder::new(&shell);
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
+    let integrated = match shell_kind(&shell) {
+        ShellKind::Bash => {
+            let dir = write_integration_scripts()?;
+            cmd.args(["--rcfile", &format!("{dir}/bash-rc.sh"), "-i"]);
+            cmd.env("WARP_CLONE_INTEGRATION", &dir);
+            true
+        }
+        ShellKind::Other => false,
+    };
     if let Some(home) = home_dir() {
         cmd.cwd(home);
     }
@@ -117,7 +165,7 @@ pub fn spawn_shell(
         writer,
         child,
     });
-    Ok(id)
+    Ok(SpawnInfo { id, integrated })
 }
 
 #[tauri::command]
