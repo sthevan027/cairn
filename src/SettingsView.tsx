@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
+import iconUrl from "../assets/icon.svg";
 import { CloseIcon } from "./icons";
 import { PromptStudio } from "./PromptStudio";
 import type { Session } from "./session";
@@ -296,9 +297,12 @@ function AboutPage() {
 
   return (
     <div className="about">
-      <p>
-        <strong>Cairn</strong> {version && <span className="muted">v{version}</span>}
-      </p>
+      <div className="about-head">
+        <img src={iconUrl} width={64} height={64} alt="" />
+        <p>
+          <strong>Cairn</strong> {version && <span className="muted">v{version}</span>}
+        </p>
+      </div>
       <p>
         Terminal próprio com blocos de comando e IA no prompt. Projeto de estudo, inspirado no Warp: cada comando vira
         um bloco empilhado que deixa o rastro do caminho.

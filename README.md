@@ -121,6 +121,18 @@ Variáveis de ambiente (todas opcionais):
 
 Na primeira vez, `Ctrl+K` pede a chave da Anthropic e a guarda no Credential Manager do Windows.
 
+## Ícone
+
+A fonte é `assets/icon.svg`: três pedras empilhadas (o "cairn") nas cores do tema Cairn Night, num quadrado
+escuro arredondado. Para regenerar todos os tamanhos depois de editar o SVG:
+
+```
+bun run tauri icon assets/icon.svg
+```
+
+Se só os ícones mudaram, o Tauri não reexecuta o script de build sozinho e o `.exe` fica com o ícone velho;
+force com `touch src-tauri/build.rs` antes de compilar.
+
 ## Referências
 
 - [How Warp Works](https://www.warp.dev/blog/how-warp-works)

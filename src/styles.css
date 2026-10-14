@@ -1426,3 +1426,19 @@ kbd {
 .chips {
   flex-wrap: wrap;
 }
+
+.about-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.about-head img {
+  flex: none;
+  border-radius: 14px;
+}
+
+.about-head p {
+  margin: 0;
+  font-size: 18px;
+}
