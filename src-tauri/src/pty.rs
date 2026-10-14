@@ -34,7 +34,7 @@ fn find_in_path(exe: &str) -> Option<PathBuf> {
 }
 
 pub fn default_shell() -> String {
-    if let Ok(shell) = std::env::var("WARP_SHELL") {
+    if let Ok(shell) = std::env::var("CAIRN_SHELL") {
         return shell;
     }
     if cfg!(windows) {
@@ -83,7 +83,7 @@ fn shell_kind(shell: &str) -> ShellKind {
 
 /// Grava os scripts de integração numa pasta temporária e devolve o caminho (com `/`).
 fn write_integration_scripts() -> Result<String, String> {
-    let dir = std::env::temp_dir().join("warp-clone").join("integration");
+    let dir = std::env::temp_dir().join("cairn").join("integration");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     std::fs::write(dir.join("bash-integration.sh"), BASH_INTEGRATION).map_err(|e| e.to_string())?;
     std::fs::write(dir.join("bash-rc.sh"), BASH_RC).map_err(|e| e.to_string())?;
@@ -125,7 +125,7 @@ pub fn spawn_shell(
         ShellKind::Bash => {
             let dir = write_integration_scripts()?;
             cmd.args(["--rcfile", &format!("{dir}/bash-rc.sh"), "-i"]);
-            cmd.env("WARP_CLONE_INTEGRATION", &dir);
+            cmd.env("CAIRN_INTEGRATION", &dir);
             true
         }
         ShellKind::PowerShell => {

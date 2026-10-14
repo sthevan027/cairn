@@ -1,4 +1,4 @@
-// Protocolo de marcadores do warp-clone (OSC privado 9278):
+// Protocolo de marcadores do cairn (OSC privado 9278):
 //   ESC ] 9278 ; pre  ; <base64 do comando>            BEL|ST
 //   ESC ] 9278 ; post ; <exit code> ; <base64 do cwd>  BEL|ST
 

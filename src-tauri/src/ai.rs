@@ -2,7 +2,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::time::Duration;
 
-const KEY_SERVICE: &str = "warp-clone";
+const KEY_SERVICE: &str = "cairn";
 const KEY_USER: &str = "anthropic-api-key";
 const API_BASE: &str = "https://api.anthropic.com";
 const DEFAULT_MODEL: &str = "claude-opus-5-5";
@@ -32,7 +32,7 @@ pub struct SuggestRequest {
 }
 
 fn model() -> String {
-    std::env::var("WARP_AI_MODEL")
+    std::env::var("CAIRN_AI_MODEL")
         .ok()
         .filter(|m| !m.trim().is_empty())
         .unwrap_or_else(|| DEFAULT_MODEL.to_string())
@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn credential_manager_guarda_le_e_apaga() {
         // entrada própria de teste: não mexe na chave real do app
-        let entry = keyring::Entry::new("warp-clone-test", "roundtrip").unwrap();
+        let entry = keyring::Entry::new("cairn-test", "roundtrip").unwrap();
         entry.set_password("sk-ant-teste-roundtrip").unwrap();
         assert_eq!(entry.get_password().unwrap(), "sk-ant-teste-roundtrip");
         entry.delete_credential().unwrap();

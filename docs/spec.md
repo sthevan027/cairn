@@ -51,7 +51,7 @@ copia a seleção. Armadilhas encontradas no teste ao vivo:
 ## Fase 4 — decisões tomadas
 
 - Modelo `claude-opus-5-5` com `output_config.effort = "low"` (pensamento não pode ser
-  desligado nesse modelo; effort baixo mantém a latência razoável). Trocável por `WARP_AI_MODEL`.
+  desligado nesse modelo; effort baixo mantém a latência razoável). Trocável por `CAIRN_AI_MODEL`.
 - `fallbacks: "default"` + header `anthropic-beta: server-side-fallback-2026-07-01` só quando o
   modelo é o padrão (para outros modelos o parâmetro pode dar 400). `stop_reason: "refusal"`
   vira mensagem na barra.

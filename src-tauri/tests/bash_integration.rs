@@ -24,7 +24,7 @@ fn bash_emite_marcadores_na_ordem_certa() {
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../integration").replace('\\', "/");
     let mut cmd = CommandBuilder::new(r"C:\Program Files\Git\bin\bash.exe");
     cmd.args(["--rcfile", &format!("{dir}/bash-rc.sh"), "-i"]);
-    cmd.env("WARP_CLONE_INTEGRATION", &dir);
+    cmd.env("CAIRN_INTEGRATION", &dir);
     cmd.env("TERM", "xterm-256color");
     let mut child = pair.slave.spawn_command(cmd).unwrap();
     drop(pair.slave);

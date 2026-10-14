@@ -1,5 +1,5 @@
 {
-  "name": "warp-clone",
+  "name": "cairn",
   "private": true,
   "version": "0.1.0",
   "description": "Terminal estilo Warp (blocos de comando + IA no prompt) — projeto de estudo",

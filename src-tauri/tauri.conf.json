@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "warp-clone",
+  "productName": "Cairn",
   "version": "0.1.0",
-  "identifier": "com.sthevandev.warpclone",
+  "identifier": "com.sthevandev.cairn",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1430",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "warp-clone",
+        "title": "Cairn",
         "width": 1000,
         "height": 640,
         "minWidth": 480,

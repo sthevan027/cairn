@@ -1,12 +1,12 @@
 [package]
-name = "warp-clone"
+name = "cairn"
 version = "0.1.0"
 description = "Terminal estilo Warp — projeto de estudo"
 authors = ["Sthevan Santos"]
 edition = "2021"
 
 [lib]
-name = "warp_clone_lib"
+name = "cairn_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

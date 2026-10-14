@@ -16,5 +16,5 @@ pub fn run() {
             ai::clear_api_key,
         ])
         .run(tauri::generate_context!())
-        .expect("erro ao iniciar o warp-clone");
+        .expect("erro ao iniciar o cairn");
 }

@@ -1,6 +1,9 @@
-# warp-clone
+# Cairn
 
 Terminal próprio, estilo Warp — projeto de **estudo/uso pessoal**, não é produto.
+
+> **Cairn** é a pilha de pedras que marca uma trilha: cada comando vira um bloco empilhado
+> que deixa o rastro do caminho. (Antes era chamado `warp-clone`.)
 
 ## Objetivo
 
@@ -73,9 +76,9 @@ Variáveis de ambiente (todas opcionais):
 
 | Variável | Efeito |
 |---|---|
-| `WARP_SHELL` | shell a abrir (ex.: `C:\Program Files\Git\bin\bash.exe`) |
+| `CAIRN_SHELL` | shell a abrir (ex.: `C:\Program Files\Git\bin\bash.exe`) |
 | `ANTHROPIC_API_KEY` | chave da IA se não houver uma no Credential Manager |
-| `WARP_AI_MODEL` | modelo da IA (padrão `claude-opus-5-5`, effort `low`) |
+| `CAIRN_AI_MODEL` | modelo da IA (padrão `claude-opus-5-5`, effort `low`) |
 | `ANTHROPIC_BASE_URL` | URL base da API (útil pra apontar pra um mock) |
 
 Na primeira vez, `Ctrl+K` pede a chave da Anthropic e a guarda no Credential Manager do Windows.

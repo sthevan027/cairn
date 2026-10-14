@@ -16,7 +16,7 @@ tarefas marcáveis — ir riscando conforme avança.
 - [ ] Tauri CLI: `bun add -D @tauri-apps/cli` no projeto, ou `cargo install
       tauri-cli`.
 - [ ] Scaffold inicial: `bun create tauri-app` (template React + TypeScript),
-      dentro de `D:\Projetos\warp-clone`.
+      dentro de `D:\Projetos\cairn`.
 - [ ] Confirmar que o scaffold builda e abre uma janela vazia (`bun run tauri dev`)
       antes de tocar em PTY.
 - [ ] Git: `git init` + primeiro commit do scaffold, antes de começar a Fase 1
