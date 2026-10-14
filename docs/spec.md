@@ -88,6 +88,34 @@ de referência, nenhum código foi copiado).
 - Os 3 temas e a troca ao vivo foram vistos na interface; fonte/tamanho/cursor, shell padrão e modelo
   da IA só têm testes da lógica.
 
+## Prompt personalizável e editor (14/10/2026)
+
+Pedido do Sthevan: personalizar o prompt como fizemos no PowerShell (`oh-my-posh`), com posição da barra de
+entrada e widgets, e um **editor com prévia dentro do terminal** no estilo do Oh My Posh Studio. Decisões:
+os dois modos de prompt, e a configuração em **arquivo JSON** (recarrega ao editar) com a tela por cima.
+
+- **Arquivo:** `settings.json` em `app_config_dir` (Rust: `read_settings`, `write_settings` atômica por
+  arquivo temporário + rename, vigia por polling de mtime a cada 800 ms que emite `settings-file-changed`).
+  JSON quebrado no meio de uma edição é ignorado. Migra o `localStorage` antigo na primeira vez.
+- **Quem desenha:** modo `shell` não mexe em nada; modo `cairn` faz os shells devolverem só `❯` (colorido
+  pelo ANSI do tema). A troca é ao vivo: o app grava o modo em `%TEMP%\cairn\prompt-mode` e os scripts de
+  integração leem o arquivo (`$env:CAIRN_MODE_FILE`) a cada prompt (pwsh) ou no `PROMPT_COMMAND` (bash).
+  No bash, a lógica não foi exercitada por teste de modo (só o fluxo normal do bash segue testado).
+- **Widgets:** `src/promptConfig.ts` (tipos, validação, formatadores puros). As cores são nomes resolvidos
+  pelo tema (`cyan`, `accent`, `fail`...) ou `#hex`, então o prompt acompanha o tema claro/escuro; isso
+  corrige o problema do prompt apagado no tema claro quando se usa o modo `cairn`.
+- **Dados:** backend `git_info` (`git status --porcelain=v2 --branch`: branch, sujo, ahead/behind) e
+  `env_info` (usuário, computador, home). A aba já sabe cwd, código de saída e duração do último bloco.
+- **Posição:** `flow` (padrão) ou `bottom`: o conteúdo se alinha ao fim e o dock fica `sticky` quando ocioso.
+- **Importador:** `src/ompImport.ts`, testado com o `tokyonight_custom.omp.json` do Sthevan.
+- **Suavidade:** `useFlip` (técnica FLIP) anima reordenar/ligar/desligar na lista e nos chips; a nota do
+  modo Shell sempre ocupa o espaço (sem pulo de layout); a assinatura de configurações do terminal só
+  reaplica tema/fonte quando o *visual* muda (antes, cada clique num widget refazia fonte e medidas).
+- **Layout responsivo:** colunas com `minmax`, botões que quebram linha e coluna única abaixo de 960 px
+  (antes, em janela estreita as colunas se sobrepunham).
+- Não verificado: estilo Powerline na tela, importação por arquivo (o seletor nativo não é automatizável) e
+  o prompt `cairn` no bash.
+
 ## Fase 4 — decisões tomadas
 
 - Modelo `claude-opus-5-5` com `output_config.effort = "low"` (pensamento não pode ser

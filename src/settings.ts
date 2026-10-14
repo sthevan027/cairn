@@ -1,4 +1,7 @@
 import { useSyncExternalStore } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { defaultPrompt, normalizePrompt, type PromptConfig } from "./promptConfig";
 import { DEFAULT_THEME_ID, THEMES } from "./themes";
 
 export interface Settings {
@@ -9,6 +12,7 @@ export interface Settings {
   /** Caminho do shell das abas novas; `null` deixa o backend escolher (pwsh se existir). */
   defaultShell: string | null;
   aiModel: string;
+  prompt: PromptConfig;
 }
 
 export const DEFAULT_AI_MODEL = "claude-opus-5-5";
@@ -20,6 +24,7 @@ export const DEFAULTS: Settings = {
   cursorBlink: true,
   defaultShell: null,
   aiModel: DEFAULT_AI_MODEL,
+  prompt: defaultPrompt(),
 };
 
 export const FONT_SIZE_RANGE = { min: 10, max: 24 } as const;
@@ -47,30 +52,84 @@ export function normalizeSettings(raw: unknown): Settings {
     cursorBlink: typeof input.cursorBlink === "boolean" ? input.cursorBlink : DEFAULTS.cursorBlink,
     defaultShell: typeof input.defaultShell === "string" && input.defaultShell.trim() ? input.defaultShell : null,
     aiModel: text(input.aiModel, DEFAULTS.aiModel),
+    prompt: normalizePrompt(input.prompt),
   };
 }
 
-const KEY = "cairn.settings";
-
-function load(): Settings {
+/** Texto do arquivo `settings.json`; `null` se não for um JSON utilizável. */
+export function parseSettingsFile(text: string): Settings | null {
   try {
-    const stored = localStorage.getItem(KEY);
-    return normalizeSettings(stored ? JSON.parse(stored) : null);
+    return normalizeSettings(JSON.parse(text));
   } catch {
-    return { ...DEFAULTS };
+    return null;
   }
 }
 
-function save(settings: Settings) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(settings));
-  } catch {
-    /* sem armazenamento: vale só nesta execução */
-  }
-}
+export const serializeSettings = (settings: Settings) => JSON.stringify(settings, null, 2);
 
-let current: Settings = load();
+// ---- armazenamento: arquivo no disco (editável à mão), localStorage só como reserva ----
+
+const LEGACY_KEY = "cairn.settings";
+const WRITE_DELAY_MS = 200;
+
+let current: Settings = normalizeSettings(null);
+let writeTimer: ReturnType<typeof setTimeout> | undefined;
 const listeners = new Set<() => void>();
+
+function readLegacy(): Settings | null {
+  try {
+    const stored = localStorage.getItem(LEGACY_KEY);
+    return stored ? parseSettingsFile(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function persist() {
+  const text = serializeSettings(current);
+  try {
+    await invoke("write_settings", { json: text });
+  } catch {
+    try {
+      localStorage.setItem(LEGACY_KEY, text); // sem backend (ex.: rodando só no navegador)
+    } catch {
+      /* vale só nesta execução */
+    }
+  }
+}
+
+function schedulePersist() {
+  clearTimeout(writeTimer);
+  writeTimer = setTimeout(() => void persist(), WRITE_DELAY_MS);
+}
+
+function notify() {
+  listeners.forEach((fn) => fn());
+}
+
+/** O arquivo foi editado por fora: recarrega sem reescrevê-lo e ignora JSON quebrado no meio da edição. */
+function applyExternal(text: string) {
+  const next = parseSettingsFile(text);
+  if (!next || serializeSettings(next) === serializeSettings(current)) return;
+  current = next;
+  notify();
+}
+
+/** Carrega o arquivo (migrando o localStorage antigo na primeira vez) e passa a vigiar edições. */
+export async function initSettings(): Promise<void> {
+  try {
+    const text = await invoke<string | null>("read_settings");
+    if (text !== null) {
+      current = parseSettingsFile(text) ?? current;
+    } else {
+      current = readLegacy() ?? current;
+      await persist();
+    }
+    await listen<string>("settings-file-changed", (event) => applyExternal(event.payload));
+  } catch {
+    current = readLegacy() ?? current;
+  }
+}
 
 export const getSettings = () => current;
 
@@ -83,12 +142,12 @@ export function subscribeSettings(listener: () => void) {
 
 export function updateSettings(patch: Partial<Settings>) {
   current = normalizeSettings({ ...current, ...patch });
-  save(current);
-  listeners.forEach((fn) => fn());
+  notify();
+  schedulePersist();
 }
 
 export function resetSettings() {
-  updateSettings({ ...DEFAULTS });
+  updateSettings(normalizeSettings(null));
 }
 
 export function useSettings(): Settings {

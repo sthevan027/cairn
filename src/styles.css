@@ -894,3 +894,535 @@ kbd {
 .muted {
   color: var(--muted);
 }
+
+/* ---- prompt do Cairn: chips e posição da entrada ---- */
+.dock {
+  display: block;
+}
+
+.app.pos-bottom .content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100%;
+}
+
+.app.pos-bottom .dock.idle {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--bg);
+}
+
+.alt .prompt-bar {
+  display: none;
+}
+
+.prompt-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 4px 0 0;
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.chips.right {
+  margin-left: auto;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--term-size, 14px) / 1.45 var(--term-font, var(--mono));
+  white-space: nowrap;
+}
+
+.chip.pill {
+  padding: 0 0.65em;
+  border-radius: 999px;
+}
+
+.chip.powerline {
+  position: relative;
+  padding: 0 0.6em;
+  line-height: 1.6em;
+}
+
+.chips.left .chip.powerline {
+  margin-right: 0.8em;
+}
+
+.chips.right .chip.powerline {
+  margin-left: 0.8em;
+}
+
+.chips.left .chip.powerline::after,
+.chips.right .chip.powerline::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  border-top: 0.8em solid transparent;
+  border-bottom: 0.8em solid transparent;
+}
+
+.chips.left .chip.powerline::after {
+  left: 100%;
+  border-left: 0.7em solid var(--chip-bg);
+}
+
+.chips.right .chip.powerline::before {
+  right: 100%;
+  border-right: 0.7em solid var(--chip-bg);
+}
+
+.chip.pickable {
+  cursor: pointer;
+}
+
+.chip.selected {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ---- barra recolhida: tudo centralizado e × para fechar ao passar o mouse ---- */
+.sidebar.collapsed {
+  align-items: center;
+  width: 48px;
+  padding: 8px 0;
+}
+
+.sidebar.collapsed .rail-list,
+.sidebar.collapsed .rail-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.sidebar.collapsed .rail-foot {
+  flex: none;
+  padding: 0;
+}
+
+.rail-item {
+  position: relative;
+}
+
+.rail-close {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--dim);
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.12s, transform 0.12s;
+}
+
+.rail-item:hover .rail-close {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.rail-close:hover {
+  border-color: var(--fail);
+  background: var(--fail);
+  color: var(--bg);
+}
+
+/* ---- editor visual do prompt ---- */
+.settings-content.wide {
+  max-width: 960px;
+}
+
+.studio {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.studio-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.segmented button {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dim);
+  font: 12.5px var(--ui);
+  cursor: pointer;
+}
+
+.segmented button.on {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.studio-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  line-height: 1.5;
+}
+
+.studio-note {
+  color: var(--muted);
+  font: 12px var(--ui);
+}
+
+.studio-cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  opacity: 0.8;
+}
+
+.studio-cols {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.seg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.seg-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: 13px var(--ui);
+  cursor: pointer;
+}
+
+.seg-row:hover {
+  background: var(--side-hover);
+}
+
+.seg-row.selected {
+  border-color: var(--accent);
+  background: var(--side-active);
+}
+
+.seg-row.off .seg-name {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.seg-row input {
+  accent-color: var(--accent);
+}
+
+.seg-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seg-side {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.mini {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+}
+
+.mini:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+.mini:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.seg-add,
+.seg-tools {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.seg-add .select {
+  flex: 1;
+}
+
+.seg-props {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seg-props h3 {
+  margin: 0 0 2px;
+  font-size: 14px;
+}
+
+.prop-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 12px;
+  align-items: center;
+  font: 13px var(--ui);
+}
+
+.prop-label {
+  color: var(--dim);
+}
+
+.color-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-field input[type="color"] {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.icon-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-input {
+  width: 74px;
+  font-family: var(--term-font, var(--mono));
+}
+
+.icon-preset {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--fg);
+  font: 15px var(--term-font, var(--mono));
+  cursor: pointer;
+}
+
+.icon-preset.on,
+.icon-preset:hover {
+  border-color: var(--accent);
+}
+
+.num-input {
+  width: 110px;
+}
+
+.btn.danger {
+  align-self: flex-start;
+  margin-top: 6px;
+  color: var(--fail);
+}
+
+.btn.danger:hover {
+  border-color: var(--fail);
+}
+
+.import-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.import-text {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 110px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 12px var(--mono);
+  resize: vertical;
+}
+
+.import-text:focus {
+  border-color: var(--accent);
+}
+
+.import-box code {
+  font: 12px var(--mono);
+}
+
+/* ---- editor do prompt: layout que não se sobrepõe + transições suaves ---- */
+.settings-content.wide {
+  overflow-x: hidden;
+}
+
+.studio-cols {
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+}
+
+.seg-list,
+.seg-detail {
+  min-width: 0;
+}
+
+.seg-tools,
+.seg-add {
+  flex-wrap: wrap;
+}
+
+.prop-row {
+  grid-template-columns: minmax(110px, 150px) minmax(0, 1fr);
+}
+
+.prop-control {
+  min-width: 0;
+}
+
+/* janela estreita: lista de widgets em cima, propriedades embaixo */
+@media (max-width: 960px) {
+  .studio-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* a nota do modo Shell sempre ocupa o espaço: ligar/desligar não empurra a página */
+.studio-note {
+  min-height: 18px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.studio-note.on {
+  opacity: 1;
+}
+
+.segmented button,
+.seg-row,
+.mini,
+.icon-preset,
+.btn,
+.select,
+.text-input {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.seg-props {
+  animation: studio-fade 0.18s ease-out;
+}
+
+.chip {
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease,
+    outline-color 0.18s ease;
+  animation: chip-in 0.2s ease-out;
+}
+
+.prompt-bar {
+  animation: studio-fade 0.2s ease-out;
+}
+
+@keyframes studio-fade {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip,
+  .prompt-bar,
+  .seg-props {
+    animation: none;
+  }
+}
+
+/* sem largura para os dois lados: o da direita desce de linha em vez de encavalar no da esquerda */
+.prompt-bar {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.chips {
+  flex-wrap: wrap;
+}

@@ -4,6 +4,8 @@ import { SerializeAddon } from "@xterm/addon-serialize";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { OscSplitter, type Marker } from "./osc";
+import { getEnv } from "./env";
+import type { GitInfo } from "./promptConfig";
 import { fontStack, getSettings, subscribeSettings } from "./settings";
 import { getTheme } from "./themes";
 
@@ -16,6 +18,16 @@ export interface TabMeta {
   status: TabStatus;
   cwd: string | null;
   branch: string | null;
+}
+
+/** Dados que alimentam os widgets do prompt desenhado pelo Cairn. */
+export interface PromptSnapshot {
+  cwd: string | null;
+  git: GitInfo | null;
+  exit: number | null;
+  durationMs: number | null;
+  shell: string;
+  running: boolean;
 }
 
 function folderName(path: string): string {
@@ -62,6 +74,12 @@ export interface SessionElements {
   liveHost: HTMLElement;
 }
 
+/** Só o que muda a aparência do terminal; o resto das configurações (prompt, IA...) não conta. */
+function lookKey(): string {
+  const s = getSettings();
+  return [s.theme, s.fontFamily, s.fontSize, s.cursorBlink].join("|");
+}
+
 /** Opções do xterm a partir das configurações atuais (tema, fonte, tamanho, cursor). */
 function termOptions() {
   const s = getSettings();
@@ -103,8 +121,17 @@ export class Session {
   private cellHeight = 17;
   private integrated = false;
   private active = true;
-  private branch: string | null = null;
+  private appliedLook = "";
+  private git: GitInfo | null = null;
   private meta: TabMeta = { title: "Terminal", subtitle: "", status: "idle", cwd: null, branch: null };
+  private promptSnap: PromptSnapshot = {
+    cwd: null,
+    git: null,
+    exit: null,
+    durationMs: null,
+    shell: "",
+    running: false,
+  };
   /** Chamado quando o shell termina sozinho (ex.: `exit`); o workspace fecha a aba. */
   onShellExit: (() => void) | null = null;
   private shell = "";
@@ -122,6 +149,7 @@ export class Session {
   };
   getSnapshot = () => this.blocks;
   getMeta = () => this.meta;
+  getPromptSnapshot = () => this.promptSnap;
 
   hasBody(id: number) {
     return this.statics.has(id);
@@ -156,6 +184,7 @@ export class Session {
     this.measure();
 
     this.shadow = new XTerm({ ...termOptions(), cols: this.cols, rows: this.rows, scrollback: 10_000 });
+    this.appliedLook = lookKey();
     this.disposers.push(subscribeSettings(() => this.applyAppearance()));
     this.shadow.loadAddon(this.serializer);
     this.shadow.onData((data) => {
@@ -218,8 +247,11 @@ export class Session {
       }
       this.integrated = info.integrated;
       this.shell = info.shell;
+      // O shell sobe na home: já dá pra mostrar a pasta e o git antes do primeiro comando.
+      this.lastCwd ??= getEnv().home || null;
       this.applyMode();
       this.emit();
+      void this.refreshGit();
     } catch (err) {
       this.shadow.write(`\r\n[erro ao abrir o shell: ${err}]\r\n`);
     }
@@ -355,15 +387,36 @@ export class Session {
     this.emit();
     this.scheduleLayout();
     this.focusActive();
-    void this.refreshBranch();
+    void this.refreshGit();
   }
 
-  private async refreshBranch() {
+  private async refreshGit() {
     if (!this.lastCwd) return;
-    const branch = await invoke<string | null>("git_branch", { cwd: this.lastCwd }).catch(() => null);
-    if (this.disposed || branch === this.branch) return;
-    this.branch = branch;
+    const git = await invoke<GitInfo | null>("git_info", { cwd: this.lastCwd }).catch(() => null);
+    if (this.disposed || JSON.stringify(git) === JSON.stringify(this.git)) return;
+    this.git = git;
     this.emit();
+  }
+
+  private computePromptSnapshot(): PromptSnapshot {
+    const lastDone = [...this.blocks].reverse().find((b) => b.finishedAt !== null);
+    const next: PromptSnapshot = {
+      cwd: this.lastCwd,
+      git: this.git,
+      exit: lastDone ? lastDone.exitCode : null,
+      durationMs: lastDone ? lastDone.finishedAt! - lastDone.startedAt : null,
+      shell: this.shell,
+      running: this.current !== null,
+    };
+    const prev = this.promptSnap;
+    const same =
+      prev.cwd === next.cwd &&
+      prev.git === next.git &&
+      prev.exit === next.exit &&
+      prev.durationMs === next.durationMs &&
+      prev.shell === next.shell &&
+      prev.running === next.running;
+    return same ? prev : next;
   }
 
   private onExit() {
@@ -384,10 +437,10 @@ export class Session {
           : "fail";
     const next: TabMeta = {
       title: running ? running.command : this.lastCwd ? folderName(this.lastCwd) : "Terminal",
-      subtitle: this.branch ?? folderName(this.shell),
+      subtitle: this.git?.branch ?? folderName(this.shell),
       status,
       cwd: this.lastCwd,
-      branch: this.branch,
+      branch: this.git?.branch ?? null,
     };
     const prev = this.meta;
     const same =
@@ -437,6 +490,11 @@ export class Session {
   /** Tema, fonte, tamanho e cursor novos em todos os terminais da aba (sombra, medidor e blocos). */
   private applyAppearance() {
     if (this.disposed || !this.shadow) return;
+    // Editar um widget do prompt também dispara a assinatura: sem esta guarda cada clique
+    // reaplicava tema/fonte e remedia a célula em todos os terminais (tranco visível).
+    const look = lookKey();
+    if (look === this.appliedLook) return;
+    this.appliedLook = look;
     const options = termOptions();
     const apply = (term: XTerm, blink: boolean) => {
       term.options.theme = options.theme;
@@ -532,6 +590,7 @@ export class Session {
 
   private emit() {
     this.meta = this.computeMeta();
+    this.promptSnap = this.computePromptSnapshot();
     this.listeners.forEach((fn) => fn());
   }
 }

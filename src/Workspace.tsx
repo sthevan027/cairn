@@ -129,7 +129,12 @@ export function Workspace() {
             active={tab.id === activeId && !settingsOpen}
           />
         ))}
-        {settingsOpen && <SettingsView onClose={() => setSettingsOpen(false)} />}
+        {settingsOpen && (
+          <SettingsView
+            onClose={() => setSettingsOpen(false)}
+            activeSession={tabs.find((t) => t.id === activeId)?.session ?? null}
+          />
+        )}
       </div>
     </div>
   );

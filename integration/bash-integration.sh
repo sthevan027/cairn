@@ -26,7 +26,21 @@ __cairn_preexec() {
   __cairn_emit "pre;$(__cairn_b64 "$line")"
 }
 
+# Modo "cairn": o app desenha os widgets e o shell mostra so o simbolo de entrada.
+# O app grava o modo em $CAIRN_MODE_FILE; ler a cada prompt faz a troca valer na hora.
+__cairn_ps1_orig="$PS1"
+__cairn_apply_mode() {
+  local mode=shell
+  [ -r "$CAIRN_MODE_FILE" ] && read -r mode < "$CAIRN_MODE_FILE"
+  if [ "$mode" = cairn ]; then
+    PS1=$'\\[\e[33m\\]\xe2\x9d\xaf\\[\e[0m\\] '
+  else
+    PS1="$__cairn_ps1_orig"
+  fi
+}
+
 __cairn_precmd() {
+  __cairn_apply_mode
   __cairn_emit "post;$__cairn_ec;$(__cairn_b64 "$PWD")"
   __cairn_at_prompt=1
 }

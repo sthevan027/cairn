@@ -75,3 +75,29 @@ describe("temas", () => {
     for (const theme of THEMES) expect(theme.term.background).toBe(theme.ui.bg);
   });
 });
+
+describe("arquivo de configuração", () => {
+  it("ida e volta preserva tudo, inclusive o prompt", async () => {
+    const { parseSettingsFile, serializeSettings } = await import("./settings");
+    const original = normalizeSettings({
+      theme: "graphite",
+      fontSize: 16,
+      prompt: { mode: "cairn", position: "bottom", segments: [{ type: "cwd", side: "right", fg: "#ff8800" }] },
+    });
+    const voltou = parseSettingsFile(serializeSettings(original));
+    expect(voltou).toEqual(original);
+    expect(voltou?.prompt.mode).toBe("cairn");
+    expect(voltou?.prompt.segments[0].fg).toBe("#ff8800");
+  });
+
+  it("JSON quebrado (edição pela metade) é ignorado, sem derrubar nada", async () => {
+    const { parseSettingsFile } = await import("./settings");
+    expect(parseSettingsFile('{"theme": "graphite", ')).toBeNull();
+    expect(parseSettingsFile("")).toBeNull();
+  });
+
+  it("o prompt entra na normalização e prompt inválido volta ao padrão", () => {
+    expect(normalizeSettings({}).prompt).toEqual(DEFAULTS.prompt);
+    expect(normalizeSettings({ prompt: "lixo" }).prompt.segments.length).toBe(5);
+  });
+});

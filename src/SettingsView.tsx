@@ -2,6 +2,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { CloseIcon } from "./icons";
+import { PromptStudio } from "./PromptStudio";
+import type { Session } from "./session";
 import {
   DEFAULT_AI_MODEL,
   FONT_SIZE_RANGE,
@@ -12,11 +14,12 @@ import {
 } from "./settings";
 import { THEMES, getTheme } from "./themes";
 
-type Page = "appearance" | "terminal" | "ai" | "shortcuts" | "about";
+type Page = "appearance" | "terminal" | "prompt" | "ai" | "shortcuts" | "about";
 
 const PAGES: Array<{ id: Page; label: string }> = [
   { id: "appearance", label: "Aparência" },
   { id: "terminal", label: "Terminal" },
+  { id: "prompt", label: "Prompt" },
   { id: "ai", label: "IA" },
   { id: "shortcuts", label: "Atalhos" },
   { id: "about", label: "Sobre" },
@@ -307,7 +310,7 @@ function AboutPage() {
   );
 }
 
-export function SettingsView({ onClose }: { onClose: () => void }) {
+export function SettingsView({ onClose, activeSession }: { onClose: () => void; activeSession: Session | null }) {
   const [page, setPage] = useState<Page>("appearance");
 
   useEffect(() => {
@@ -341,9 +344,10 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
             <CloseIcon />
           </button>
         </header>
-        <div className="settings-content">
+        <div className={`settings-content${page === "prompt" ? " wide" : ""}`}>
           {page === "appearance" && <AppearancePage />}
           {page === "terminal" && <TerminalPage />}
+          {page === "prompt" && <PromptStudio session={activeSession} />}
           {page === "ai" && <AiPage />}
           {page === "shortcuts" && <ShortcutsPage />}
           {page === "about" && <AboutPage />}

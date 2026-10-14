@@ -37,6 +37,15 @@ function global:prompt {
         }
         __cairn_emit "post;$code;$(__cairn_b64 (Get-Location).Path)"
     }
+    # Modo "cairn": o app desenha os widgets e o shell mostra so o simbolo de entrada.
+    # O app grava o modo em $env:CAIRN_MODE_FILE; ler a cada prompt faz a troca valer na hora.
+    $wcMode = $null
+    if ($env:CAIRN_MODE_FILE -and (Test-Path -LiteralPath $env:CAIRN_MODE_FILE)) {
+        $wcMode = Get-Content -LiteralPath $env:CAIRN_MODE_FILE -TotalCount 1
+    }
+    if ($wcMode -eq 'cairn') {
+        return "$([char]27)[33m$([char]0x276F)$([char]27)[0m "
+    }
     # os comandos acima zeraram $?; devolve o valor real para o prompt original
     if (-not $wcOk) { Write-Error 'wc' -ErrorAction Ignore }
     & $global:__cairn_orig_prompt

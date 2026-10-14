@@ -81,6 +81,23 @@ vivo e é lembrado entre execuções:
 - **Shell padrão** das abas novas e **modelo da IA** (Opus 5.5, Sonnet 5.5 ou Haiku 5.5); a chave da
   Anthropic também é guardada/removida ali (Credential Manager).
 
+### Prompt personalizável (aba "Prompt")
+
+Dois modos, escolhidos na página:
+
+- **Shell:** o prompt continua sendo o do seu shell (por exemplo o `oh-my-posh`).
+- **Cairn:** o shell mostra só o `❯` e o app desenha uma linha de **widgets** acima dele, com as cores do
+  tema ativo: usuário, computador, pasta, git (com estado: `+` `~` `?` `↑` `↓`), status e duração do
+  último comando, hora, shell e texto livre. Cada widget tem lado (esquerda/direita), estilo (texto,
+  pílula, powerline), cores, ícone e opções próprias.
+
+O editor tem prévia ao vivo (dados de exemplo ou da aba atual), reordenar, ligar/desligar, adicionar e
+remover widgets, e **importa um `.omp.json` do oh-my-posh** (segmentos session, path, git, status,
+executiontime, time, shell e text). A posição da entrada pode ser **no fluxo** ou **fixa embaixo**.
+
+Tudo fica em um arquivo editável à mão, `%APPDATA%\com.sthevandev.cairn\settings.json`; ao salvar o arquivo
+o app recarrega sozinho.
+
 Limitação conhecida: no tema claro, um prompt com cores fixas pensadas pra fundo escuro (como o
 `oh-my-posh` do Tokyo Night) fica apagado — o terminal não consegue reescrever cores de 24 bits do shell.
 

@@ -1,16 +1,27 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import "@xterm/xterm/css/xterm.css";
 import { AiBar } from "./AiBar";
+import { getEnv } from "./env";
+import { PromptBar } from "./PromptBar";
+import { formatDuration, type PromptData } from "./promptConfig";
 import { SearchBar } from "./SearchBar";
 import { matchesQuery } from "./search";
 import { Session, type Block } from "./session";
+import { useSettings } from "./settings";
+import { getTheme } from "./themes";
 
 type Bar = "none" | "ai" | "search";
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  const s = ms / 1000;
-  return s < 60 ? `${s.toFixed(1)}s` : `${Math.floor(s / 60)}m${Math.round(s % 60)}s`;
+/** Relógio para o widget de hora; só roda quando o widget está ligado. */
+function useNow(enabled: boolean, seconds: boolean): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    if (!enabled) return;
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), seconds ? 1000 : 15_000);
+    return () => clearInterval(id);
+  }, [enabled, seconds]);
+  return now;
 }
 
 interface BlockViewProps {
@@ -101,6 +112,16 @@ export function TabView({ session, active, shell }: TabViewProps) {
   const [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
 
+  const settings = useSettings();
+  const promptCfg = settings.prompt;
+  const snap = useSyncExternalStore(session.subscribe, session.getPromptSnapshot);
+  const clockSegments = promptCfg.segments.filter((s) => s.enabled && s.type === "time");
+  const now = useNow(active && promptCfg.mode === "cairn" && clockSegments.length > 0, clockSegments.some((s) => s.options.seconds));
+  const promptData: PromptData = useMemo(() => {
+    const env = getEnv();
+    return { ...env, ...snap, now };
+  }, [snap, now]);
+
   useEffect(() => {
     void session.start(
       {
@@ -153,14 +174,14 @@ export function TabView({ session, active, shell }: TabViewProps) {
 
   return (
     <div
-      className={`app${bar !== "none" ? " bar-open" : ""}${active ? "" : " inactive"}`}
+      className={`app${bar !== "none" ? " bar-open" : ""}${active ? "" : " inactive"}${promptCfg.position === "bottom" ? " pos-bottom" : ""}`}
       onClick={() => {
         if (!window.getSelection()?.toString()) session.focusActive();
       }}
     >
       <div className="sizer" ref={sizer} />
       <div className="scroll" ref={scroll}>
-        <div ref={content}>
+        <div ref={content} className="content">
           {blocks.map((block) => (
             <BlockView
               key={block.id}
@@ -177,8 +198,13 @@ export function TabView({ session, active, shell }: TabViewProps) {
               }
             />
           ))}
-          <div className="live-clip" ref={liveClip}>
-            <div ref={liveHost} />
+          <div className={`dock${snap.running ? "" : " idle"}`}>
+            {promptCfg.mode === "cairn" && !snap.running && (
+              <PromptBar config={promptCfg} data={promptData} theme={getTheme(settings.theme)} />
+            )}
+            <div className="live-clip" ref={liveClip}>
+              <div ref={liveHost} />
+            </div>
           </div>
         </div>
       </div>

@@ -48,8 +48,10 @@ function RailItem({ tab, active, onSelect, onClose }: RailItemProps) {
   const meta = useSyncExternalStore(tab.session.subscribe, tab.session.getMeta);
   const label = [tab.name ?? meta.title, meta.branch].filter(Boolean).join(" · ");
   return (
-    <button
+    <div
       className={`rail-item${active ? " active" : ""}`}
+      role="button"
+      tabIndex={0}
       title={label}
       onClick={onSelect}
       onAuxClick={(e) => {
@@ -60,7 +62,17 @@ function RailItem({ tab, active, onSelect, onClose }: RailItemProps) {
       }}
     >
       <TabAvatar meta={meta} />
-    </button>
+      <button
+        className="rail-close"
+        title="Fechar a aba (Ctrl+Shift+W)"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+      >
+        <CloseIcon width={10} height={10} strokeWidth={2.6} />
+      </button>
+    </div>
   );
 }
 

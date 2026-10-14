@@ -107,6 +107,27 @@ fn write_integration_scripts() -> Result<String, String> {
     Ok(dir.to_string_lossy().replace('\\', "/"))
 }
 
+fn prompt_mode_file() -> PathBuf {
+    std::env::temp_dir().join("cairn").join("prompt-mode")
+}
+
+fn write_prompt_mode(path: &std::path::Path, mode: &str) -> Result<(), String> {
+    if mode != "shell" && mode != "cairn" {
+        return Err(format!("modo de prompt inválido: {mode}"));
+    }
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(path, mode).map_err(|e| e.to_string())
+}
+
+/// "shell" mantém o prompt do shell (ex. oh-my-posh); "cairn" reduz o prompt a um `❯` e os widgets
+/// vêm do app. Os shells leem este arquivo a cada prompt, então a troca vale já no próximo.
+#[tauri::command]
+pub fn set_prompt_mode(mode: String) -> Result<(), String> {
+    write_prompt_mode(&prompt_mode_file(), &mode)
+}
+
 fn size(cols: u16, rows: u16) -> PtySize {
     PtySize {
         rows,
@@ -135,6 +156,7 @@ pub fn spawn_shell(
     let mut cmd = CommandBuilder::new(&shell);
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
+    cmd.env("CAIRN_MODE_FILE", prompt_mode_file().to_string_lossy().replace('\\', "/"));
     let integrated = match shell_kind(&shell) {
         ShellKind::Bash => {
             let dir = write_integration_scripts()?;
@@ -307,5 +329,21 @@ mod manager_tests {
         state.kill(b);
         assert!(state.sessions.lock().unwrap().is_empty());
         state.kill(999); // id inexistente nao pode dar panico
+    }
+}
+
+#[cfg(test)]
+mod prompt_mode_tests {
+    use super::*;
+
+    #[test]
+    fn grava_so_modos_validos() {
+        let path = std::env::temp_dir().join("cairn-test-mode").join("prompt-mode");
+        write_prompt_mode(&path, "cairn").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "cairn");
+        write_prompt_mode(&path, "shell").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "shell");
+        assert!(write_prompt_mode(&path, "outro").is_err());
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "shell", "modo invalido nao altera o arquivo");
     }
 }
