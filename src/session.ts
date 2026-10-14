@@ -4,6 +4,8 @@ import { SerializeAddon } from "@xterm/addon-serialize";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { OscSplitter, type Marker } from "./osc";
+import { fontStack, getSettings, subscribeSettings } from "./settings";
+import { getTheme } from "./themes";
 
 export type TabStatus = "idle" | "running" | "ok" | "fail";
 
@@ -49,6 +51,7 @@ interface StaticBlock {
   plain: string;
   rows: number;
   opened: boolean;
+  clip: HTMLElement | null;
 }
 
 export interface SessionElements {
@@ -59,18 +62,17 @@ export interface SessionElements {
   liveHost: HTMLElement;
 }
 
-const TERM_OPTIONS = {
-  fontFamily: '"CaskaydiaCove Nerd Font Mono", "Cascadia Code", Consolas, monospace',
-  fontSize: 14,
-  cursorBlink: true,
-  cursorInactiveStyle: "none",
-  theme: {
-    background: "#1a1b26",
-    foreground: "#c0caf5",
-    cursor: "#c0caf5",
-    selectionBackground: "#33467c",
-  },
-} as const;
+/** Opções do xterm a partir das configurações atuais (tema, fonte, tamanho, cursor). */
+function termOptions() {
+  const s = getSettings();
+  return {
+    fontFamily: fontStack(s.fontFamily),
+    fontSize: s.fontSize,
+    cursorBlink: s.cursorBlink,
+    cursorInactiveStyle: "none" as const,
+    theme: getTheme(s.theme).term,
+  };
+}
 
 const FOCUS_REPORTS = new Set(["\x1b[I", "\x1b[O"]);
 const STICK_THRESHOLD_PX = 40;
@@ -146,14 +148,15 @@ export class Session {
   async start(els: SessionElements, shell?: string) {
     this.els = els;
 
-    this.meter = { term: new XTerm(TERM_OPTIONS), fit: new FitAddon() };
+    this.meter = { term: new XTerm(termOptions()), fit: new FitAddon() };
     this.meter.term.loadAddon(this.meter.fit);
     this.meter.term.open(els.sizer);
     await document.fonts.ready;
     if (this.disposed) return;
     this.measure();
 
-    this.shadow = new XTerm({ ...TERM_OPTIONS, cols: this.cols, rows: this.rows, scrollback: 10_000 });
+    this.shadow = new XTerm({ ...termOptions(), cols: this.cols, rows: this.rows, scrollback: 10_000 });
+    this.disposers.push(subscribeSettings(() => this.applyAppearance()));
     this.shadow.loadAddon(this.serializer);
     this.shadow.onData((data) => {
       if (FOCUS_REPORTS.has(data) || this.sessionId === null) return;
@@ -264,6 +267,7 @@ export class Session {
     const block = this.statics.get(id);
     if (!block || block.opened) return;
     block.opened = true;
+    block.clip = clip;
     const host = document.createElement("div");
     clip.appendChild(host);
     clip.style.height = `${block.rows * this.cellHeight}px`;
@@ -328,7 +332,7 @@ export class Session {
     if (range) {
       const rows = range.last - range.first + 1;
       const term = new XTerm({
-        ...TERM_OPTIONS,
+        ...termOptions(),
         cols: this.cols,
         rows,
         scrollback: 0,
@@ -340,7 +344,7 @@ export class Session {
         { length: rows },
         (_, i) => buf.getLine(range.first + i)?.translateToString(true) ?? "",
       ).join("\n");
-      this.statics.set(id, { term, text, plain, rows, opened: false });
+      this.statics.set(id, { term, text, plain, rows, opened: false, clip: null });
     }
 
     this.liveStart?.dispose();
@@ -428,6 +432,31 @@ export class Session {
       invoke("resize_pty", { id: this.sessionId, cols: this.cols, rows: this.rows }).catch(() => {});
     }
     this.scheduleLayout();
+  }
+
+  /** Tema, fonte, tamanho e cursor novos em todos os terminais da aba (sombra, medidor e blocos). */
+  private applyAppearance() {
+    if (this.disposed || !this.shadow) return;
+    const options = termOptions();
+    const apply = (term: XTerm, blink: boolean) => {
+      term.options.theme = options.theme;
+      term.options.fontFamily = options.fontFamily;
+      term.options.fontSize = options.fontSize;
+      term.options.cursorBlink = blink;
+    };
+    apply(this.shadow, options.cursorBlink);
+    apply(this.meter.term, false);
+    this.statics.forEach((block) => apply(block.term, false));
+
+    // O tamanho da célula depende da fonte: só dá pra remedir depois que o xterm redesenha.
+    window.setTimeout(() => {
+      if (this.disposed) return;
+      this.onResize();
+      this.statics.forEach((block) => {
+        if (block.clip) block.clip.style.height = `${block.rows * this.cellHeight}px`;
+      });
+      this.scheduleLayout();
+    }, 80);
   }
 
   /** Sem integração o terminal ocupa a tela toda, como na fase 1. */

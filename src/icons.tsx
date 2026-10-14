@@ -118,3 +118,12 @@ export function ProgramIcon({ program, size = 18 }: { program: Program; size?: n
       return <span className="glyph">&gt;_</span>;
   }
 }
+
+export const SettingsIcon = (p: IconProps) => (
+  <svg {...base} {...p}>
+    <path d="M4 6h9M19 6h1M4 12h3M13 12h7M4 18h11M21 18h-1" />
+    <circle cx="16" cy="6" r="2.2" />
+    <circle cx="10" cy="12" r="2.2" />
+    <circle cx="18" cy="18" r="2.2" />
+  </svg>
+);

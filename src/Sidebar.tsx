@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { BranchIcon, CloseIcon, PanelIcon, PlusIcon, ProgramIcon, SearchIcon } from "./icons";
+import { BranchIcon, CloseIcon, PanelIcon, PlusIcon, ProgramIcon, SearchIcon, SettingsIcon } from "./icons";
 import { programOf } from "./programs";
 import { matchesQuery } from "./search";
 import type { Session, TabMeta } from "./session";
@@ -144,9 +144,20 @@ interface SidebarProps {
   onClose: (id: number) => void;
   onNew: (shell?: string) => void;
   onRename: (id: number, name: string | null) => void;
+  onOpenSettings: () => void;
 }
 
-export function Sidebar({ tabs, activeId, open, onToggle, onSelect, onClose, onNew, onRename }: SidebarProps) {
+export function Sidebar({
+  tabs,
+  activeId,
+  open,
+  onToggle,
+  onSelect,
+  onClose,
+  onNew,
+  onRename,
+  onOpenSettings,
+}: SidebarProps) {
   const [query, setQuery] = useState("");
   const [shells, setShells] = useState<ShellOption[] | null>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -189,10 +200,28 @@ export function Sidebar({ tabs, activeId, open, onToggle, onSelect, onClose, onN
     </button>
   );
 
+  const shellMenu = shells && (
+    <div className="shell-menu" ref={menu}>
+      {shells.length === 0 && <div className="shell-empty">nenhum shell encontrado</div>}
+      {shells.map((shell) => (
+        <button
+          key={shell.path}
+          onClick={() => {
+            setShells(null);
+            onNew(shell.path);
+          }}
+        >
+          <span>{shell.name}</span>
+        </button>
+      ))}
+    </div>
+  );
+
   if (!open) {
     return (
       <aside className="sidebar collapsed">
         {toggle}
+        {shellMenu}
         <div className="rail-list">
           {tabs.map((tab) => (
             <RailItem
@@ -204,6 +233,11 @@ export function Sidebar({ tabs, activeId, open, onToggle, onSelect, onClose, onN
             />
           ))}
           {plus}
+        </div>
+        <div className="rail-foot">
+          <button className="icon-btn" title="Configurações (Ctrl+,)" onClick={onOpenSettings}>
+            <SettingsIcon />
+          </button>
         </div>
       </aside>
     );
@@ -225,22 +259,7 @@ export function Sidebar({ tabs, activeId, open, onToggle, onSelect, onClose, onN
         </label>
         {plus}
       </div>
-      {shells && (
-        <div className="shell-menu" ref={menu}>
-          {shells.length === 0 && <div className="shell-empty">nenhum shell encontrado</div>}
-          {shells.map((shell) => (
-            <button
-              key={shell.path}
-              onClick={() => {
-                setShells(null);
-                onNew(shell.path);
-              }}
-            >
-              <span>{shell.name}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      {shellMenu}
       <div className="side-list">
         {tabs.map((tab) => (
           <Item
@@ -253,6 +272,12 @@ export function Sidebar({ tabs, activeId, open, onToggle, onSelect, onClose, onN
             onRename={(name) => onRename(tab.id, name)}
           />
         ))}
+      </div>
+      <div className="side-foot">
+        <button className="label" title="Configurações (Ctrl+,)" onClick={onOpenSettings}>
+          <SettingsIcon width={15} height={15} />
+          Configurações
+        </button>
       </div>
     </aside>
   );

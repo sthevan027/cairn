@@ -29,6 +29,18 @@ pub struct SuggestRequest {
     cwd: Option<String>,
     #[serde(default)]
     recent: Vec<RecentCommand>,
+    /// Modelo escolhido nas configurações do app; sem ele vale `CAIRN_AI_MODEL` e, por fim, o padrão.
+    #[serde(default)]
+    model: Option<String>,
+}
+
+fn chosen_model(req: &SuggestRequest) -> String {
+    req.model
+        .as_deref()
+        .map(str::trim)
+        .filter(|m| !m.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(model)
 }
 
 fn model() -> String {
@@ -187,7 +199,7 @@ pub async fn suggest_command(req: SuggestRequest) -> Result<String, String> {
     }
     let key = api_key().ok_or("sem chave da Anthropic configurada")?;
     let base = std::env::var("ANTHROPIC_BASE_URL").unwrap_or_else(|_| API_BASE.to_string());
-    request_suggestion(base.trim_end_matches('/'), &key, &model(), &req).await
+    request_suggestion(base.trim_end_matches('/'), &key, &chosen_model(&req), &req).await
 }
 
 #[cfg(test)]
@@ -201,7 +213,23 @@ mod tests {
             shell: "pwsh.exe".into(),
             cwd: Some("C:/Users/Sthev".into()),
             recent: vec![RecentCommand { command: "git status".into(), exit_code: Some(0) }],
+            model: None,
         }
+    }
+
+    #[test]
+    fn modelo_vem_da_configuracao_e_so_cai_no_padrao_sem_ele() {
+        let com: SuggestRequest = serde_json::from_str(
+            r#"{"prompt":"x","shell":"pwsh.exe","model":"claude-haiku-5-5"}"#,
+        )
+        .unwrap();
+        assert_eq!(chosen_model(&com), "claude-haiku-5-5");
+
+        let vazio: SuggestRequest =
+            serde_json::from_str(r#"{"prompt":"x","shell":"pwsh.exe","model":"   "}"#).unwrap();
+        let sem: SuggestRequest = serde_json::from_str(r#"{"prompt":"x","shell":"pwsh.exe"}"#).unwrap();
+        assert_eq!(chosen_model(&vazio), model());
+        assert_eq!(chosen_model(&sem), model());
     }
 
     #[test]

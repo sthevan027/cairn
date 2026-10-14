@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { SettingsView } from "./SettingsView";
 import { Sidebar, type SidebarTab } from "./Sidebar";
 import { TabView } from "./Terminal";
 import { Session } from "./session";
+import { getSettings } from "./settings";
 
 interface Tab extends SidebarTab {
   shell: string | null;
@@ -11,7 +13,7 @@ let lastTabId = 0;
 const makeTab = (shell: string | null = null): Tab => ({
   id: ++lastTabId,
   session: new Session(),
-  shell,
+  shell: shell ?? getSettings().defaultShell,
   name: null,
 });
 
@@ -29,11 +31,18 @@ export function Workspace() {
   const [tabs, setTabs] = useState<Tab[]>(() => [makeTab()]);
   const [activeId, setActiveId] = useState(() => tabs[0].id);
   const [sidebarOpen, setSidebarOpen] = useState(loadSidebarOpen);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   function newTab(shell?: string) {
     const tab = makeTab(shell ?? null);
     setTabs((prev) => [...prev, tab]);
     setActiveId(tab.id);
+    setSettingsOpen(false);
+  }
+
+  function selectTab(id: number) {
+    setActiveId(id);
+    setSettingsOpen(false);
   }
 
   function closeTab(id: number) {
@@ -88,6 +97,7 @@ export function Workspace() {
       if (e.shiftKey && key === "t") newTab();
       else if (e.shiftKey && key === "w") closeTab(activeId);
       else if (e.shiftKey && key === "b") toggleSidebar();
+      else if (!e.shiftKey && key === ",") setSettingsOpen((open) => !open);
       else if (key === "tab") cycle(e.shiftKey ? -1 : 1);
       else return;
       e.preventDefault();
@@ -104,15 +114,22 @@ export function Workspace() {
         activeId={activeId}
         open={sidebarOpen}
         onToggle={toggleSidebar}
-        onSelect={setActiveId}
+        onSelect={selectTab}
         onClose={closeTab}
         onNew={newTab}
         onRename={rename}
+        onOpenSettings={() => setSettingsOpen((open) => !open)}
       />
       <div className="tabs-area">
         {tabs.map((tab) => (
-          <TabView key={tab.id} session={tab.session} shell={tab.shell} active={tab.id === activeId} />
+          <TabView
+            key={tab.id}
+            session={tab.session}
+            shell={tab.shell}
+            active={tab.id === activeId && !settingsOpen}
+          />
         ))}
+        {settingsOpen && <SettingsView onClose={() => setSettingsOpen(false)} />}
       </div>
     </div>
   );

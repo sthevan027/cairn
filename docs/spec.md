@@ -72,6 +72,22 @@ de referência, nenhum código foi copiado).
 - Atalhos usam Ctrl+Shift porque Ctrl+T/W/B puros são do readline (transpor, apagar palavra, voltar).
 - Fora do escopo: painéis divididos, "hover detail", configurações e tema (próximas fatias).
 
+## Configurações e tema (14/10/2026)
+
+- **Armazenamento:** `localStorage` (`cairn.settings`), validado por `normalizeSettings` (campo inválido
+  cai no padrão; tamanho de fonte limitado a 10–24; fonte sanitizada antes de virar CSS). Testado.
+  Candidato a virar arquivo (`%APPDATA%\cairn\settings.json`) para permitir edição à mão/versionar.
+- **Temas:** `src/themes.ts` define, por tema, as cores da interface (viram variáveis CSS na raiz) e a
+  paleta ANSI de 16 cores do xterm. Todo o CSS passou a usar variáveis (nenhum literal de cor fora delas).
+- **Aplicação ao vivo:** cada `Session` assina as configurações e reaplica tema/fonte/tamanho/cursor no
+  terminal sombra, no medidor e nos blocos; depois de 80 ms remede a célula e redimensiona o PTY.
+  Blocos já terminados mantêm as colunas de quando foram gerados (só os glifos mudam de tamanho).
+- **Modelo da IA:** `suggest_command` recebe `model`; sem ele vale `CAIRN_AI_MODEL` e depois o padrão.
+- **Tentativa que não funcionou:** `minimumContrastRatio` (4.5) nos temas claros para salvar prompts com
+  cores fixas — medido na captura, o texto continuou exatamente `#bb9af7`; removido.
+- Os 3 temas e a troca ao vivo foram vistos na interface; fonte/tamanho/cursor, shell padrão e modelo
+  da IA só têm testes da lógica.
+
 ## Fase 4 — decisões tomadas
 
 - Modelo `claude-opus-5-5` com `output_config.effort = "low"` (pensamento não pode ser

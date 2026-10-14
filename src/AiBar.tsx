@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { Session } from "./session";
+import { getSettings } from "./settings";
 
 export function AiBar({ session, onClose }: { session: Session; onClose: () => void }) {
   const input = useRef<HTMLInputElement>(null);
@@ -31,7 +32,7 @@ export function AiBar({ session, onClose }: { session: Session; onClose: () => v
         setText("");
       } else {
         const command = await invoke<string>("suggest_command", {
-          req: { prompt: value, ...session.aiContext() },
+          req: { prompt: value, model: getSettings().aiModel, ...session.aiContext() },
         });
         onClose();
         session.insertCommand(command);

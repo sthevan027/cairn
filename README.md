@@ -65,10 +65,24 @@ tela cheia (vim/less) e `Ctrl+C` dentro de blocos. Ver [docs/spec.md](docs/spec.
 | `Ctrl+Shift+T` / `Ctrl+Shift+W` | nova aba / fecha a aba (Ctrl+T e Ctrl+W puros são do shell) |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | próxima / anterior aba |
 | `Ctrl+Shift+B` | recolhe/abre a barra lateral |
+| `Ctrl+,` (ou o botão no rodapé da barra) | abre as configurações |
 | botão direito no `+` | escolhe o shell da nova aba (PowerShell 7, Windows PowerShell, Git Bash) |
 | duplo clique no título da aba | renomeia (vazio volta ao automático) |
 | barra lateral recolhida | vira uma coluna de ícones das abas (nome e branch no tooltip), com o `+` embaixo |
 | ícone da aba | mostra o programa em execução (claude, git, node, python, cargo, docker, vim, ssh...); no prompt, `>_` |
+
+## Configurações e tema
+
+`Ctrl+,` abre a página de configurações (Aparência, Terminal, IA, Atalhos, Sobre). Tudo vale ao
+vivo e é lembrado entre execuções:
+
+- **Tema:** Cairn Night (padrão), Grafite e Dia (claro). Pinta a interface e a paleta do terminal.
+- **Fonte, tamanho e cursor piscando**, com prévia.
+- **Shell padrão** das abas novas e **modelo da IA** (Opus 5.5, Sonnet 5.5 ou Haiku 5.5); a chave da
+  Anthropic também é guardada/removida ali (Credential Manager).
+
+Limitação conhecida: no tema claro, um prompt com cores fixas pensadas pra fundo escuro (como o
+`oh-my-posh` do Tokyo Night) fica apagado — o terminal não consegue reescrever cores de 24 bits do shell.
 
 ## Como rodar
 
@@ -85,7 +99,7 @@ Variáveis de ambiente (todas opcionais):
 |---|---|
 | `CAIRN_SHELL` | shell a abrir (ex.: `C:\Program Files\Git\bin\bash.exe`) |
 | `ANTHROPIC_API_KEY` | chave da IA se não houver uma no Credential Manager |
-| `CAIRN_AI_MODEL` | modelo da IA (padrão `claude-opus-5-5`, effort `low`) |
+| `CAIRN_AI_MODEL` | modelo da IA só se o app não enviar um (as configurações têm prioridade) |
 | `ANTHROPIC_BASE_URL` | URL base da API (útil pra apontar pra um mock) |
 
 Na primeira vez, `Ctrl+K` pede a chave da Anthropic e a guarda no Credential Manager do Windows.
