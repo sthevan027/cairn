@@ -33,6 +33,21 @@ Outros achados de implementação:
   `Write-Error -ErrorAction Ignore`) antes de chamar o prompt original, senão o oh-my-posh
   nunca mostra erro.
 
+## Polimento (14/10/2026)
+
+Ações por bloco (copiar comando/saída, repetir, recolher), busca com `Ctrl+F` e `Ctrl+C` que
+copia a seleção. Armadilhas encontradas no teste ao vivo:
+
+- O Enter que fecha uma barra (busca/IA) precisa de `preventDefault`: sem isso o `keypress`
+  cai no terminal quando o foco volta e executa uma linha vazia (ou, na IA, executaria a
+  sugestão colada).
+- Esconder bloco com `display:none` quebra o xterm: ele mede a largura do caractere ao abrir,
+  e um bloco que nasce escondido sai com letras espaçadas. O filtro usa altura zero +
+  `visibility:hidden`.
+- A saída "sem cores" para copiar/buscar é guardada como texto puro no momento em que o bloco
+  termina (`translateToString`), separada da cópia serializada com cores.
+- Fora do escopo por enquanto: abas, ícone próprio, atalhos de navegação entre blocos.
+
 ## Fase 4 — decisões tomadas
 
 - Modelo `claude-opus-5-5` com `output_config.effort = "low"` (pensamento não pode ser

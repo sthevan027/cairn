@@ -30,6 +30,7 @@ export interface AiContext {
 interface StaticBlock {
   term: XTerm;
   text: string;
+  plain: string;
   rows: number;
   opened: boolean;
 }
@@ -100,6 +101,24 @@ export class Session {
 
   hasBody(id: number) {
     return this.statics.has(id);
+  }
+
+  /** Saída do bloco como texto puro (sem cores), para copiar e buscar. */
+  blockOutput(id: number) {
+    return this.statics.get(id)?.plain ?? "";
+  }
+
+  /** Copia a seleção de mouse (do terminal ao vivo ou de um bloco), se houver; limpa a seleção. */
+  copySelection(): boolean {
+    const terms = [this.shadow, ...[...this.statics.values()].map((s) => s.term)];
+    for (const term of terms) {
+      if (term?.hasSelection()) {
+        void navigator.clipboard.writeText(term.getSelection());
+        term.clearSelection();
+        return true;
+      }
+    }
+    return false;
   }
 
   async start(els: SessionElements, shell?: string) {
@@ -288,7 +307,11 @@ export class Session {
         disableStdin: true,
       });
       const text = this.serializer.serialize({ range: { start: range.first, end: range.last } });
-      this.statics.set(id, { term, text, rows, opened: false });
+      const plain = Array.from(
+        { length: rows },
+        (_, i) => buf.getLine(range.first + i)?.translateToString(true) ?? "",
+      ).join("\n");
+      this.statics.set(id, { term, text, plain, rows, opened: false });
     }
 
     this.liveStart?.dispose();

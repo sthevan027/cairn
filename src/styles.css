@@ -157,3 +157,94 @@ body,
 .ai-bar input::-ms-reveal {
   display: none;
 }
+
+.app.bar-open .scroll {
+  bottom: 56px;
+}
+
+/* Escondido pela busca: NÃO usar display:none, o xterm mede a largura do caractere ao abrir
+   e mediria zero se o bloco nascesse escondido (letras espaçadas). */
+.block.filtered {
+  height: 0;
+  margin: 0;
+  border-width: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.block header {
+  align-items: center;
+}
+
+.block .cmd {
+  flex: 1;
+  min-width: 0;
+}
+
+.block .chevron {
+  flex: none;
+  margin: 0 -6px 0 -4px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: #565f89;
+  font: inherit;
+  cursor: pointer;
+}
+
+.block .chevron:hover {
+  color: var(--fg);
+}
+
+.block .actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.block:hover .actions {
+  opacity: 1;
+}
+
+.actions button {
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: #9aa5ce;
+  font: 500 12px var(--mono);
+  cursor: pointer;
+}
+
+.actions button:hover {
+  border-color: #7aa2f7;
+  color: var(--fg);
+}
+
+.block.collapsed .clip {
+  height: 0 !important;
+}
+
+.ai-bar.search {
+  border-left-color: var(--running);
+}
+
+.ai-bar.search .ai-label {
+  color: var(--running);
+}
+
+.filter-chip {
+  position: absolute;
+  top: 12px;
+  right: 24px;
+  z-index: 1;
+  padding: 3px 10px;
+  border: 1px solid var(--running);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--running);
+  font: 12px var(--mono);
+  cursor: pointer;
+}

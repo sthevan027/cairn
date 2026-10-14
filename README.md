@@ -49,6 +49,17 @@ As 4 fases estão implementadas e validadas no Windows (PowerShell 7 e Git Bash)
 caminho HTTP foi coberto por um servidor mock), Windows PowerShell 5.1, zsh, programas de
 tela cheia (vim/less) e `Ctrl+C` dentro de blocos. Ver [docs/spec.md](docs/spec.md).
 
+## Atalhos e ações
+
+| Atalho / ação | O que faz |
+|---|---|
+| `Ctrl+K` | barra de IA: descreve o que quer, a sugestão é colada no prompt sem Enter |
+| `Ctrl+F` | busca nos blocos (comando e saída); Enter fecha mantendo o filtro, Esc limpa |
+| `Ctrl+C` | com texto selecionado com o mouse, copia; sem seleção, interrompe o comando como sempre |
+| `cmd` / `saída` (no cabeçalho do bloco) | copia o comando / a saída sem cores |
+| `repetir` | cola o comando do bloco no prompt (não executa) |
+| seta `▾` | recolhe/expande a saída do bloco |
+
 ## Como rodar
 
 ```

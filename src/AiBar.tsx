@@ -58,8 +58,14 @@ export function AiBar({ session, onClose }: { session: Session; onClose: () => v
         placeholder={askingKey ? "cole sua ANTHROPIC_API_KEY (sk-ant-...)" : "descreva o que você quer fazer"}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") void submit();
-          if (e.key === "Escape") onClose();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            void submit();
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            onClose();
+          }
         }}
       />
       <span className={`ai-hint${error ? " error" : ""}`}>
