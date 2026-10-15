@@ -25,7 +25,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMxNzc0NjIwQzIxMzUzNjUKUldSbFV4UENJRVozd1FZTnJsODQxWVd5NWlDZlQ0bTFwT2dlOW96TlNhejdPS0svWXpXdlVRaWEK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI4QUI1NjIzMjNCQTVGMDAKUldRQVg3b2pJMWFydUhiWWlwWEZJYU1SZzBYb1FBYkhSeGdPc2QzUlZMTmNjOFFhWmxaWTFiVDIK",
       "endpoints": ["https://github.com/sthevan027/cairn/releases/latest/download/latest.json"]
     }
   },
