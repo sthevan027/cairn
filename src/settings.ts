@@ -20,6 +20,14 @@ export interface Settings {
   cursorColor: string;
   /** Caminho do shell das abas novas; `null` deixa o backend escolher (pwsh se existir). */
   defaultShell: string | null;
+  /** Lado da tela em que fica a barra lateral. */
+  sidebarSide: SidebarSide;
+  /** Largura da barra lateral aberta, em pixels. */
+  sidebarWidth: number;
+  /** Onde entra a aba nova: no fim da lista ou logo depois da atual. */
+  newTabPosition: NewTabPosition;
+  /** Fecha a aba sozinha quando o shell termina (`exit`); desligado, a aba fica com o aviso. */
+  closeOnExit: boolean;
   aiModel: string;
   prompt: PromptConfig;
   /** Combinação de teclas de cada ação (`Ctrl+Shift+T`). */
@@ -28,6 +36,12 @@ export interface Settings {
 
 export const CURSOR_STYLES = ["block", "underline", "bar"] as const;
 export type CursorStyle = (typeof CURSOR_STYLES)[number];
+
+export const SIDEBAR_SIDES = ["left", "right"] as const;
+export type SidebarSide = (typeof SIDEBAR_SIDES)[number];
+export const NEW_TAB_POSITIONS = ["end", "afterCurrent"] as const;
+export type NewTabPosition = (typeof NEW_TAB_POSITIONS)[number];
+export const SIDEBAR_WIDTH_RANGE = { min: 200, max: 420, step: 4 } as const;
 
 export const DEFAULT_AI_MODEL = "claude-opus-5-5";
 
@@ -41,6 +55,10 @@ export const DEFAULTS: Settings = {
   cursorStyle: "block",
   cursorColor: "",
   defaultShell: null,
+  sidebarSide: "left",
+  sidebarWidth: 248,
+  newTabPosition: "end",
+  closeOnExit: true,
   aiModel: DEFAULT_AI_MODEL,
   prompt: defaultPrompt(),
   shortcuts: DEFAULT_SHORTCUTS,
@@ -84,6 +102,14 @@ export function normalizeSettings(raw: unknown): Settings {
       : DEFAULTS.cursorStyle,
     cursorColor: typeof input.cursorColor === "string" && /^#[0-9a-fA-F]{6}$/.test(input.cursorColor) ? input.cursorColor : "",
     defaultShell: typeof input.defaultShell === "string" && input.defaultShell.trim() ? input.defaultShell : null,
+    sidebarSide: SIDEBAR_SIDES.includes(input.sidebarSide as SidebarSide)
+      ? (input.sidebarSide as SidebarSide)
+      : DEFAULTS.sidebarSide,
+    sidebarWidth: Math.round(clampTo(input.sidebarWidth, SIDEBAR_WIDTH_RANGE, DEFAULTS.sidebarWidth)),
+    newTabPosition: NEW_TAB_POSITIONS.includes(input.newTabPosition as NewTabPosition)
+      ? (input.newTabPosition as NewTabPosition)
+      : DEFAULTS.newTabPosition,
+    closeOnExit: typeof input.closeOnExit === "boolean" ? input.closeOnExit : DEFAULTS.closeOnExit,
     aiModel: text(input.aiModel, DEFAULTS.aiModel),
     prompt: normalizePrompt(input.prompt),
     shortcuts: normalizeShortcuts(input.shortcuts),

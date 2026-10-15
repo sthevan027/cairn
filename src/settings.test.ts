@@ -76,6 +76,21 @@ describe("temas", () => {
   });
 });
 
+describe("barra lateral e abas", () => {
+  it("aceita os valores válidos", () => {
+    const s = normalizeSettings({ sidebarSide: "right", sidebarWidth: 300, newTabPosition: "afterCurrent", closeOnExit: false });
+    expect(s).toMatchObject({ sidebarSide: "right", sidebarWidth: 300, newTabPosition: "afterCurrent", closeOnExit: false });
+  });
+
+  it("largura presa ao intervalo e inteira; lixo cai no padrão", () => {
+    expect(normalizeSettings({ sidebarWidth: 9000 }).sidebarWidth).toBe(420);
+    expect(normalizeSettings({ sidebarWidth: 10 }).sidebarWidth).toBe(200);
+    expect(normalizeSettings({ sidebarWidth: 250.6 }).sidebarWidth).toBe(251);
+    const bad = normalizeSettings({ sidebarSide: "meio", sidebarWidth: "x", newTabPosition: 3, closeOnExit: "sim" });
+    expect(bad).toMatchObject({ sidebarSide: "left", sidebarWidth: 248, newTabPosition: "end", closeOnExit: true });
+  });
+});
+
 describe("espaçamento do texto", () => {
   it("mantém valores dentro do intervalo", () => {
     const s = normalizeSettings({ lineHeight: 1.3, letterSpacing: 1.5 });

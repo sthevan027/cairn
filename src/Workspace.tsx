@@ -4,7 +4,7 @@ import { SettingsView } from "./SettingsView";
 import { Sidebar, type SidebarTab } from "./Sidebar";
 import { TabView } from "./Terminal";
 import { Session } from "./session";
-import { getSettings } from "./settings";
+import { getSettings, useSettings } from "./settings";
 import { matches, recorder } from "./shortcuts";
 
 interface Tab extends SidebarTab {
@@ -37,7 +37,12 @@ export function Workspace() {
 
   function newTab(shell?: string) {
     const tab = makeTab(shell ?? null);
-    setTabs((prev) => [...prev, tab]);
+    const { newTabPosition } = getSettings();
+    setTabs((prev) => {
+      const at = prev.findIndex((t) => t.id === activeId);
+      if (newTabPosition !== "afterCurrent" || at < 0) return [...prev, tab];
+      return [...prev.slice(0, at + 1), tab, ...prev.slice(at + 1)];
+    });
     setActiveId(tab.id);
     setSettingsOpen(false);
   }
@@ -82,12 +87,15 @@ export function Workspace() {
     tabs.find((t) => t.id === id)?.session.focusActive();
   }
 
-  // O shell que termina sozinho (`exit`) fecha a aba. Ref: o callback nasce com o closeTab da época.
+  // O shell que termina sozinho (`exit`) fecha a aba, se a configuração mandar.
+  // Ref: o callback nasce com o closeTab da época.
   const closeRef = useRef(closeTab);
   closeRef.current = closeTab;
   useEffect(() => {
     tabs.forEach((t) => {
-      t.session.onShellExit = () => closeRef.current(t.id);
+      t.session.onShellExit = () => {
+        if (getSettings().closeOnExit) closeRef.current(t.id);
+      };
     });
   }, [tabs]);
 
@@ -132,8 +140,13 @@ export function Workspace() {
     };
   }, []);
 
+  const { sidebarSide, sidebarWidth } = useSettings();
+
   return (
-    <div className="workspace">
+    <div
+      className={`workspace${sidebarSide === "right" ? " sidebar-right" : ""}`}
+      style={{ ["--sidebar-width" as string]: `${sidebarWidth}px` }}
+    >
       <Sidebar
         tabs={tabs}
         activeId={activeId}

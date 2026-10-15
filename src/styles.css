@@ -289,9 +289,19 @@ body,
   display: flex;
   flex: none;
   flex-direction: column;
-  width: 248px;
+  width: var(--sidebar-width, 248px);
   border-right: 1px solid var(--border);
   background: var(--side);
+}
+
+/* Barra lateral à direita: inverte a ordem e passa a borda para o lado de dentro. */
+.workspace.sidebar-right {
+  flex-direction: row-reverse;
+}
+
+.workspace.sidebar-right .sidebar {
+  border-right: 0;
+  border-left: 1px solid var(--border);
 }
 
 .sidebar.collapsed {

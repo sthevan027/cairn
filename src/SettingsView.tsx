@@ -7,6 +7,9 @@ import { PromptStudio } from "./PromptStudio";
 import type { Session } from "./session";
 import {
   type CursorStyle,
+  type NewTabPosition,
+  type SidebarSide,
+  SIDEBAR_WIDTH_RANGE,
   DEFAULT_AI_MODEL,
   FONT_SIZE_RANGE,
   LETTER_SPACING_RANGE,
@@ -29,11 +32,12 @@ import { THEMES, getTheme } from "./themes";
 import { statusHint } from "./updateStatus";
 import { useUpdateStatus, type UseUpdateStatus } from "./useUpdateStatus";
 
-type Page = "appearance" | "terminal" | "prompt" | "ai" | "shortcuts" | "about";
+type Page = "appearance" | "terminal" | "layout" | "prompt" | "ai" | "shortcuts" | "about";
 
 const PAGES: Array<{ id: Page; label: string }> = [
   { id: "appearance", label: "Aparência" },
   { id: "terminal", label: "Terminal" },
+  { id: "layout", label: "Abas e barra lateral" },
   { id: "prompt", label: "Prompt" },
   { id: "ai", label: "IA" },
   { id: "shortcuts", label: "Atalhos" },
@@ -248,6 +252,58 @@ function TerminalPage() {
         ))}
       </select>
     </Field>
+  );
+}
+
+function LayoutPage() {
+  const s = useSettings();
+  return (
+    <>
+      <Field label="Lado da barra lateral">
+        <select
+          value={s.sidebarSide}
+          onChange={(e) => updateSettings({ sidebarSide: e.target.value as SidebarSide })}
+        >
+          <option value="left">Esquerda</option>
+          <option value="right">Direita</option>
+        </select>
+      </Field>
+
+      <Field label="Largura da barra lateral" help="Vale com a barra aberta; recolhida, ela tem largura fixa.">
+        <div className="range-row">
+          <input
+            type="range"
+            min={SIDEBAR_WIDTH_RANGE.min}
+            max={SIDEBAR_WIDTH_RANGE.max}
+            step={SIDEBAR_WIDTH_RANGE.step}
+            value={s.sidebarWidth}
+            onChange={(e) => updateSettings({ sidebarWidth: Number(e.target.value) })}
+          />
+          <output>{s.sidebarWidth}px</output>
+        </div>
+      </Field>
+
+      <Field label="Onde entra a aba nova">
+        <select
+          value={s.newTabPosition}
+          onChange={(e) => updateSettings({ newTabPosition: e.target.value as NewTabPosition })}
+        >
+          <option value="end">No fim da lista</option>
+          <option value="afterCurrent">Logo depois da aba atual</option>
+        </select>
+      </Field>
+
+      <Field label="Fechar a aba quando o shell terminar" help="Com isso desligado, `exit` deixa a aba aberta com o aviso de processo encerrado.">
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={s.closeOnExit}
+            onChange={(e) => updateSettings({ closeOnExit: e.target.checked })}
+          />
+          <span className="switch-track" />
+        </label>
+      </Field>
+    </>
   );
 }
 
@@ -518,6 +574,7 @@ export function SettingsView({ onClose, activeSession }: { onClose: () => void; 
         <div className={`settings-content${page === "prompt" ? " wide" : ""}`}>
           {page === "appearance" && <AppearancePage />}
           {page === "terminal" && <TerminalPage />}
+          {page === "layout" && <LayoutPage />}
           {page === "prompt" && <PromptStudio session={activeSession} />}
           {page === "ai" && <AiPage />}
           {page === "shortcuts" && <ShortcutsPage />}
