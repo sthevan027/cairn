@@ -7,7 +7,8 @@ import { formatDuration, type PromptData } from "./promptConfig";
 import { SearchBar } from "./SearchBar";
 import { matchesQuery } from "./search";
 import { Session, type Block } from "./session";
-import { useSettings } from "./settings";
+import { getSettings, useSettings } from "./settings";
+import { matches, recorder } from "./shortcuts";
 import { getTheme } from "./themes";
 
 type Bar = "none" | "ai" | "search";
@@ -146,17 +147,17 @@ export function TabView({ session, active, shell }: TabViewProps) {
   useEffect(() => {
     if (!active) return;
     const onKey = (e: KeyboardEvent) => {
-      if (!e.ctrlKey || e.altKey) return;
-      const key = e.key.toLowerCase();
-      if (key === "k" && !e.shiftKey) {
+      if (recorder.active) return;
+      const { shortcuts } = getSettings();
+      if (matches(e, shortcuts.aiBar)) {
         e.preventDefault();
         e.stopPropagation();
         setBar((b) => (b === "ai" ? "none" : session.isIdle() ? "ai" : b));
-      } else if (key === "f" && !e.shiftKey) {
+      } else if (matches(e, shortcuts.search)) {
         e.preventDefault();
         e.stopPropagation();
         setBar((b) => (b === "search" ? "none" : "search"));
-      } else if (key === "c" && session.copySelection()) {
+      } else if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === "c" && session.copySelection()) {
         e.preventDefault();
         e.stopPropagation();
       }

@@ -877,6 +877,17 @@ body,
   width: 52%;
 }
 
+.kbd-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.kbd-btn:hover kbd {
+  border-color: var(--accent);
+}
+
 kbd {
   padding: 2px 7px;
   border: 1px solid var(--border);

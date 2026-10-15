@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { defaultPrompt, normalizePrompt, type PromptConfig } from "./promptConfig";
+import { DEFAULT_SHORTCUTS, normalizeShortcuts, type Shortcuts } from "./shortcuts";
 import { DEFAULT_THEME_ID, THEMES } from "./themes";
 
 export interface Settings {
@@ -21,6 +22,8 @@ export interface Settings {
   defaultShell: string | null;
   aiModel: string;
   prompt: PromptConfig;
+  /** Combinação de teclas de cada ação (`Ctrl+Shift+T`). */
+  shortcuts: Shortcuts;
 }
 
 export const CURSOR_STYLES = ["block", "underline", "bar"] as const;
@@ -40,6 +43,7 @@ export const DEFAULTS: Settings = {
   defaultShell: null,
   aiModel: DEFAULT_AI_MODEL,
   prompt: defaultPrompt(),
+  shortcuts: DEFAULT_SHORTCUTS,
 };
 
 export const FONT_SIZE_RANGE = { min: 10, max: 24 } as const;
@@ -82,6 +86,7 @@ export function normalizeSettings(raw: unknown): Settings {
     defaultShell: typeof input.defaultShell === "string" && input.defaultShell.trim() ? input.defaultShell : null,
     aiModel: text(input.aiModel, DEFAULTS.aiModel),
     prompt: normalizePrompt(input.prompt),
+    shortcuts: normalizeShortcuts(input.shortcuts),
   };
 }
 

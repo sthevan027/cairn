@@ -16,6 +16,15 @@ import {
   updateSettings,
   useSettings,
 } from "./settings";
+import {
+  ACTIONS,
+  DEFAULT_SHORTCUTS,
+  comboFromEvent,
+  conflictFor,
+  normalizeCombo,
+  recorder,
+  type ActionId,
+} from "./shortcuts";
 import { THEMES, getTheme } from "./themes";
 import { statusHint } from "./updateStatus";
 import { useUpdateStatus, type UseUpdateStatus } from "./useUpdateStatus";
@@ -47,15 +56,11 @@ const AI_MODELS = [
   { id: "claude-haiku-5-5", label: "Claude Haiku 5.5", hint: "o mais rápido e barato; sem fallback automático" },
 ];
 
-const SHORTCUTS: Array<[string, string]> = [
-  ["Ctrl+Shift+T", "nova aba"],
-  ["Ctrl+Shift+W", "fecha a aba"],
-  ["Ctrl+Tab / Ctrl+Shift+Tab", "próxima / anterior aba"],
-  ["Ctrl+Shift+B", "recolhe ou abre a barra lateral"],
-  ["Ctrl+K", "IA: descreve o que quer e recebe o comando"],
-  ["Ctrl+F", "busca nos blocos da aba"],
+/** Teclas que não dá para mudar: dependem do shell ou do sistema. */
+const FIXED_SHORTCUTS: Array<[string, string]> = [
   ["Ctrl+C", "copia a seleção; sem seleção, interrompe o comando"],
-  ["Ctrl+,", "abre estas configurações"],
+  ["Ctrl+V / Shift+Insert / botão direito", "cola (texto, ou o caminho de uma imagem copiada)"],
+  ["Ctrl+L", "limpa a tela de blocos"],
   ["Esc", "fecha a barra de IA/busca ou as configurações"],
 ];
 
@@ -328,19 +333,101 @@ function AiPage() {
 }
 
 function ShortcutsPage() {
+  const s = useSettings();
+  const [recording, setRecording] = useState<ActionId | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  // Enquanto grava, qualquer combinação vira o novo atalho (Esc cancela).
+  useEffect(() => {
+    if (!recording) return;
+    recorder.active = true;
+    const onKey = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === "Escape") {
+        setRecording(null);
+        setMessage(null);
+        return;
+      }
+      const combo = comboFromEvent(e);
+      if (!combo) return; // só um modificador apertado: espera a tecla
+      if (!normalizeCombo(combo)) {
+        setMessage("Use Ctrl ou Alt na combinação, para não atrapalhar o que você digita.");
+        return;
+      }
+      const clash = conflictFor(s.shortcuts, recording, combo);
+      if (clash) {
+        setMessage(`${combo} já é de "${ACTIONS.find((a) => a.id === clash)?.label}". Escolha outra.`);
+        return;
+      }
+      updateSettings({ shortcuts: { ...s.shortcuts, [recording]: combo } });
+      setRecording(null);
+      setMessage(null);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      recorder.active = false;
+    };
+  }, [recording, s.shortcuts]);
+
+  function reset(id: ActionId) {
+    const clash = conflictFor(s.shortcuts, id, DEFAULT_SHORTCUTS[id]);
+    if (clash) {
+      setMessage(`${DEFAULT_SHORTCUTS[id]} está em uso por "${ACTIONS.find((a) => a.id === clash)?.label}".`);
+      return;
+    }
+    setMessage(null);
+    updateSettings({ shortcuts: { ...s.shortcuts, [id]: DEFAULT_SHORTCUTS[id] } });
+  }
+
   return (
-    <table className="shortcuts">
-      <tbody>
-        {SHORTCUTS.map(([keys, what]) => (
-          <tr key={keys}>
-            <td>
-              <kbd>{keys}</kbd>
-            </td>
-            <td>{what}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <>
+      <table className="shortcuts">
+        <tbody>
+          {ACTIONS.map((a) => (
+            <tr key={a.id}>
+              <td>
+                <button
+                  type="button"
+                  className="kbd-btn"
+                  title="clique e aperte a nova combinação (Esc cancela)"
+                  onClick={() => {
+                    setMessage(null);
+                    setRecording(recording === a.id ? null : a.id);
+                  }}
+                >
+                  <kbd>{recording === a.id ? "aperte as teclas…" : s.shortcuts[a.id] || "sem atalho"}</kbd>
+                </button>
+              </td>
+              <td>{a.label}</td>
+              <td>
+                {s.shortcuts[a.id] !== a.default && (
+                  <button type="button" onClick={() => reset(a.id)}>
+                    restaurar
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {message && <p className="upderr">{message}</p>}
+      <h3>Fixos</h3>
+      <table className="shortcuts">
+        <tbody>
+          {FIXED_SHORTCUTS.map(([keys, what]) => (
+            <tr key={keys}>
+              <td>
+                <kbd>{keys}</kbd>
+              </td>
+              <td>{what}</td>
+              <td />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 }
 
@@ -399,7 +486,7 @@ export function SettingsView({ onClose, activeSession }: { onClose: () => void; 
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && !recorder.active) {
         e.preventDefault();
         onClose();
       }

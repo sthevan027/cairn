@@ -5,6 +5,7 @@ import { Sidebar, type SidebarTab } from "./Sidebar";
 import { TabView } from "./Terminal";
 import { Session } from "./session";
 import { getSettings } from "./settings";
+import { matches, recorder } from "./shortcuts";
 
 interface Tab extends SidebarTab {
   shell: string | null;
@@ -90,16 +91,17 @@ export function Workspace() {
     });
   }, [tabs]);
 
-  // Ctrl+T/W/B sem Shift são do shell (transpor, apagar palavra, voltar caractere): por isso Ctrl+Shift.
+  // As combinações vêm das configurações (padrão: Ctrl+Shift+T/W/B, pois Ctrl+T/W/B sem Shift são do shell).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!e.ctrlKey || e.altKey) return;
-      const key = e.key.toLowerCase();
-      if (e.shiftKey && key === "t") newTab();
-      else if (e.shiftKey && key === "w") closeTab(activeId);
-      else if (e.shiftKey && key === "b") toggleSidebar();
-      else if (!e.shiftKey && key === ",") setSettingsOpen((open) => !open);
-      else if (key === "tab") cycle(e.shiftKey ? -1 : 1);
+      if (recorder.active) return;
+      const { shortcuts } = getSettings();
+      if (matches(e, shortcuts.newTab)) newTab();
+      else if (matches(e, shortcuts.closeTab)) closeTab(activeId);
+      else if (matches(e, shortcuts.toggleSidebar)) toggleSidebar();
+      else if (matches(e, shortcuts.openSettings)) setSettingsOpen((open) => !open);
+      else if (matches(e, shortcuts.nextTab)) cycle(1);
+      else if (matches(e, shortcuts.prevTab)) cycle(-1);
       else return;
       e.preventDefault();
       e.stopPropagation();
