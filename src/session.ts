@@ -8,11 +8,8 @@ import { getEnv } from "./env";
 import type { GitInfo } from "./promptConfig";
 import { fontStack, getSettings, subscribeSettings } from "./settings";
 import { getTheme } from "./themes";
-import { pathsToInput, quotePath, toPtyPaste } from "./paste";
+import { clipToInput, isClearKey, isPasteKey, pathsToInput, type Clip } from "./paste";
 import { isClearCommand } from "./clear";
-
-/** Espelha `clipboard::Clip` no Rust. */
-type Clip = { kind: "text"; value: string } | { kind: "image"; value: string } | { kind: "empty" };
 
 export type TabStatus = "idle" | "running" | "ok" | "fail";
 
@@ -225,8 +222,7 @@ export class Session {
     // Colar tem uma única via: Ctrl+V / Shift+Insert, o evento de colagem e o clique direito
     // cancelam o caminho nativo (que duplicava) e passam por pasteFromClipboard().
     const onPasteKey = (e: KeyboardEvent) => {
-      const paste = (e.ctrlKey && !e.altKey && e.key.toLowerCase() === "v") || (e.shiftKey && e.key === "Insert");
-      if (!paste) return;
+      if (!isPasteKey(e)) return;
       e.preventDefault();
       e.stopPropagation();
       void this.pasteFromClipboard();
@@ -244,7 +240,7 @@ export class Session {
     };
     // Ctrl+L limpa a tela de blocos (sem comando rodando); a tecla continua indo pro shell, que redesenha o prompt.
     const onClearKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "l" && this.isIdle()) this.clearBlocks();
+      if (isClearKey(e) && this.isIdle()) this.clearBlocks();
     };
     els.scroll.addEventListener("keydown", onClearKey, { capture: true });
     els.scroll.addEventListener("keydown", onPasteKey, { capture: true });
@@ -349,8 +345,8 @@ export class Session {
     } catch {
       return;
     }
-    if (clip.kind === "text") this.writePty(toPtyPaste(clip.value, this.shadow.modes.bracketedPasteMode));
-    else if (clip.kind === "image") this.writePty(quotePath(clip.value));
+    const input = clipToInput(clip, this.shadow.modes.bracketedPasteMode);
+    if (input !== null) this.writePty(input);
     this.focusActive();
   }
 

@@ -6,6 +6,7 @@ import { TabView } from "./Terminal";
 import { Session } from "./session";
 import { getSettings, useSettings } from "./settings";
 import { matches, recorder } from "./shortcuts";
+import { insertTab } from "./tabs";
 
 interface Tab extends SidebarTab {
   shell: string | null;
@@ -38,11 +39,7 @@ export function Workspace() {
   function newTab(shell?: string) {
     const tab = makeTab(shell ?? null);
     const { newTabPosition } = getSettings();
-    setTabs((prev) => {
-      const at = prev.findIndex((t) => t.id === activeId);
-      if (newTabPosition !== "afterCurrent" || at < 0) return [...prev, tab];
-      return [...prev.slice(0, at + 1), tab, ...prev.slice(at + 1)];
-    });
+    setTabs((prev) => insertTab(prev, tab, activeId, newTabPosition));
     setActiveId(tab.id);
     setSettingsOpen(false);
   }

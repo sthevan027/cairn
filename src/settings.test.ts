@@ -118,7 +118,71 @@ describe("cursor", () => {
   });
 });
 
+describe("atalhos dentro das configurações", () => {
+  it("o padrão traz todos os atalhos", () => {
+    expect(normalizeSettings({}).shortcuts).toEqual(DEFAULTS.shortcuts);
+    expect(DEFAULTS.shortcuts.newTab).toBe("Ctrl+Shift+T");
+  });
+
+  it("personalização válida é mantida e padronizada; inválida volta ao padrão", () => {
+    const s = normalizeSettings({ shortcuts: { newTab: "ctrl+alt+n", closeTab: "W", search: 5 } });
+    expect(s.shortcuts.newTab).toBe("Ctrl+Alt+N");
+    expect(s.shortcuts.closeTab).toBe(DEFAULTS.shortcuts.closeTab);
+    expect(s.shortcuts.search).toBe(DEFAULTS.shortcuts.search);
+  });
+
+  it("'shortcuts' que não é objeto vira o padrão", () => {
+    expect(normalizeSettings({ shortcuts: "lixo" }).shortcuts).toEqual(DEFAULTS.shortcuts);
+  });
+});
+
+describe("os padrões novos", () => {
+  it("batem com o que a tela mostra ao abrir", () => {
+    expect(DEFAULTS).toMatchObject({
+      lineHeight: 1,
+      letterSpacing: 0,
+      cursorStyle: "block",
+      cursorColor: "",
+      sidebarSide: "left",
+      sidebarWidth: 248,
+      newTabPosition: "end",
+      closeOnExit: true,
+    });
+  });
+
+  it("configuração vazia ou antiga (sem os campos novos) completa tudo com os padrões", () => {
+    const antiga = { theme: "graphite", fontSize: 16, cursorBlink: false };
+    const s = normalizeSettings(antiga);
+    expect(s).toMatchObject({ theme: "graphite", fontSize: 16, cursorBlink: false });
+    expect(s).toMatchObject({
+      lineHeight: DEFAULTS.lineHeight,
+      sidebarSide: DEFAULTS.sidebarSide,
+      closeOnExit: DEFAULTS.closeOnExit,
+    });
+    expect(s.shortcuts).toEqual(DEFAULTS.shortcuts);
+  });
+});
+
 describe("arquivo de configuração", () => {
+  it("ida e volta preserva as personalizações novas", async () => {
+    const { parseSettingsFile, serializeSettings } = await import("./settings");
+    const original = normalizeSettings({
+      lineHeight: 1.25,
+      letterSpacing: 1,
+      cursorStyle: "underline",
+      cursorColor: "#33ccff",
+      sidebarSide: "right",
+      sidebarWidth: 320,
+      newTabPosition: "afterCurrent",
+      closeOnExit: false,
+      shortcuts: { newTab: "Ctrl+Alt+N" },
+    });
+    const voltou = parseSettingsFile(serializeSettings(original));
+    expect(voltou).toEqual(original);
+    expect(voltou?.shortcuts.newTab).toBe("Ctrl+Alt+N");
+    expect(voltou?.sidebarSide).toBe("right");
+  });
+
   it("ida e volta preserva tudo, inclusive o prompt", async () => {
     const { parseSettingsFile, serializeSettings } = await import("./settings");
     const original = normalizeSettings({
