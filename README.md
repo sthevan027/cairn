@@ -183,11 +183,17 @@ Em **Configurações → Sobre**, "Verificar agora" consulta a última release d
 assinatura da atualização com uma chave pública embutida (par próprio do Cairn, separado do certificado do
 Windows) antes de instalar. A versão 0.1.0 não tinha esse botão; a 0.2.0 em diante tem.
 
+A chave do updater mudou na 0.4.0 (a nova tem senha). A transição não exige reinstalar: a 0.4.0 foi assinada
+com a chave antiga, que a 0.2.0 reconhece, e já embute a chave nova; da 0.5.0 em diante tudo é assinado com a nova.
+
 Para publicar a próxima versão:
 
 1. Subir a versão nos três arquivos: `package.json`, `src-tauri/tauri.conf.json` e `src-tauri/Cargo.toml`.
-2. Gerar o instalador com `TAURI_SIGNING_PRIVATE_KEY` apontando para a chave privada do updater
-   (guardada fora do repositório) e `bun run tauri build`.
+2. Gerar o instalador com `TAURI_SIGNING_PRIVATE_KEY` (conteúdo da chave privada do updater, guardada fora do
+   repositório, em `~\.tauri\cairn-updater-v2.key`) e `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, e rodar
+   `bun run tauri build`. A senha fica no Credential Manager (entrada `cairn-updater-key`); o script
+   `~\.tauri\get-cairn-key-password.ps1` a lê:
+   `$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = & "$HOME\.tauri\get-cairn-key-password.ps1"`.
 3. Gerar o `latest.json` com `bun run tools/make-latest-json.ts <versão> "<notas>"`.
 4. Commit, tag `v<versão>`, push, e `gh release create v<versão> <instalador> <latest.json> --latest`.
 
