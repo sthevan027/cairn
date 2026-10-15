@@ -8,6 +8,10 @@ import { getEnv } from "./env";
 import type { GitInfo } from "./promptConfig";
 import { fontStack, getSettings, subscribeSettings } from "./settings";
 import { getTheme } from "./themes";
+import { pathsToInput, quotePath, toPtyPaste } from "./paste";
+
+/** Espelha `clipboard::Clip` no Rust. */
+type Clip = { kind: "text"; value: string } | { kind: "image"; value: string } | { kind: "empty" };
 
 export type TabStatus = "idle" | "running" | "ok" | "fail";
 
@@ -212,6 +216,36 @@ export class Session {
       els.scroll.scrollTop += e.deltaY * unit;
     };
     els.scroll.addEventListener("wheel", onWheel, { capture: true, passive: false });
+
+    // Colar tem uma única via: Ctrl+V / Shift+Insert, o evento de colagem e o clique direito
+    // cancelam o caminho nativo (que duplicava) e passam por pasteFromClipboard().
+    const onPasteKey = (e: KeyboardEvent) => {
+      const paste = (e.ctrlKey && !e.altKey && e.key.toLowerCase() === "v") || (e.shiftKey && e.key === "Insert");
+      if (!paste) return;
+      e.preventDefault();
+      e.stopPropagation();
+      void this.pasteFromClipboard();
+    };
+    const onNativePaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      void this.pasteFromClipboard();
+    };
+    // Clique direito: copia a seleção se houver, senão cola (como o Windows Terminal).
+    const onContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!this.copySelection()) void this.pasteFromClipboard();
+    };
+    els.scroll.addEventListener("keydown", onPasteKey, { capture: true });
+    els.scroll.addEventListener("paste", onNativePaste, { capture: true });
+    els.scroll.addEventListener("contextmenu", onContextMenu, { capture: true });
+    this.disposers.push(() => {
+      els.scroll.removeEventListener("keydown", onPasteKey, { capture: true });
+      els.scroll.removeEventListener("paste", onNativePaste, { capture: true });
+      els.scroll.removeEventListener("contextmenu", onContextMenu, { capture: true });
+    });
+
     const sizerObserver = new ResizeObserver(() => this.onResize());
     sizerObserver.observe(els.sizer);
     // O xterm só atualiza a altura no próprio frame; observar o conteúdo garante que o
@@ -293,6 +327,32 @@ export class Session {
   insertCommand(command: string) {
     this.shadow.paste(command.replace(/[\r\n]+/g, " ").trim());
     this.focusActive();
+  }
+
+  /** Cola o conteúdo da área de transferência no prompt, sem Enter. Texto ou imagem (vira caminho). */
+  async pasteFromClipboard() {
+    if (this.sessionId === null) return;
+    let clip: Clip;
+    try {
+      clip = await invoke<Clip>("clipboard_read");
+    } catch {
+      return;
+    }
+    if (clip.kind === "text") this.writePty(toPtyPaste(clip.value, this.shadow.modes.bracketedPasteMode));
+    else if (clip.kind === "image") this.writePty(quotePath(clip.value));
+    this.focusActive();
+  }
+
+  /** Arquivos soltos na aba: os caminhos entram no prompt, sem Enter. */
+  insertPaths(paths: string[]) {
+    if (paths.length === 0) return;
+    this.writePty(pathsToInput(paths) + " ");
+    this.focusActive();
+  }
+
+  private writePty(data: string) {
+    if (this.sessionId === null) return;
+    invoke("write_to_pty", { id: this.sessionId, data }).catch(() => {});
   }
 
   attachBlock(id: number, clip: HTMLElement) {

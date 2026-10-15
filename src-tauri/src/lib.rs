@@ -1,4 +1,5 @@
 mod ai;
+mod clipboard;
 mod info;
 mod pty;
 mod settings_file;
@@ -18,6 +19,7 @@ pub fn run() {
             pty::write_to_pty,
             pty::resize_pty,
             pty::kill_pty,
+            clipboard::clipboard_read,
             ai::suggest_command,
             ai::has_api_key,
             ai::set_api_key,

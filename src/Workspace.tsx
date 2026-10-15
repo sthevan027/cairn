@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { SettingsView } from "./SettingsView";
 import { Sidebar, type SidebarTab } from "./Sidebar";
 import { TabView } from "./Terminal";
@@ -106,6 +107,28 @@ export function Workspace() {
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
   });
+
+  // Arrastar arquivos do Explorer pra janela: o Tauri intercepta o drop do sistema (não chega como
+  // evento de DOM), então os caminhos vêm por aqui e entram no prompt da aba ativa.
+  const activeRef = useRef<Session | null>(null);
+  activeRef.current = tabs.find((t) => t.id === activeId)?.session ?? null;
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    getCurrentWebview()
+      .onDragDropEvent((event) => {
+        if (event.payload.type === "drop") activeRef.current?.insertPaths(event.payload.paths);
+      })
+      .then((fn) => {
+        if (cancelled) fn();
+        else unlisten = fn;
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
 
   return (
     <div className="workspace">
