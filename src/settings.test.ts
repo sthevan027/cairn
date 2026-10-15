@@ -76,6 +76,19 @@ describe("temas", () => {
   });
 });
 
+describe("espaçamento do texto", () => {
+  it("mantém valores dentro do intervalo", () => {
+    const s = normalizeSettings({ lineHeight: 1.3, letterSpacing: 1.5 });
+    expect(s.lineHeight).toBe(1.3);
+    expect(s.letterSpacing).toBe(1.5);
+  });
+
+  it("prende ao intervalo e troca lixo pelo padrão", () => {
+    expect(normalizeSettings({ lineHeight: 9, letterSpacing: -3 })).toMatchObject({ lineHeight: 1.6, letterSpacing: 0 });
+    expect(normalizeSettings({ lineHeight: "abc", letterSpacing: null })).toMatchObject({ lineHeight: 1, letterSpacing: 0 });
+  });
+});
+
 describe("cursor", () => {
   it("aceita formato conhecido e cor #rrggbb", () => {
     const s = normalizeSettings({ cursorStyle: "bar", cursorColor: "#ff8800" });

@@ -9,6 +9,8 @@ import {
   type CursorStyle,
   DEFAULT_AI_MODEL,
   FONT_SIZE_RANGE,
+  LETTER_SPACING_RANGE,
+  LINE_HEIGHT_RANGE,
   fontStack,
   resetSettings,
   updateSettings,
@@ -128,6 +130,34 @@ function AppearancePage() {
             onChange={(e) => updateSettings({ fontSize: Number(e.target.value) })}
           />
           <output>{s.fontSize}px</output>
+        </div>
+      </Field>
+
+      <Field label="Altura da linha" help="1 é o padrão. Valores maiores deixam o texto mais arejado.">
+        <div className="range-row">
+          <input
+            type="range"
+            min={LINE_HEIGHT_RANGE.min}
+            max={LINE_HEIGHT_RANGE.max}
+            step={LINE_HEIGHT_RANGE.step}
+            value={s.lineHeight}
+            onChange={(e) => updateSettings({ lineHeight: Number(e.target.value) })}
+          />
+          <output>{s.lineHeight.toFixed(2)}</output>
+        </div>
+      </Field>
+
+      <Field label="Espaço entre letras">
+        <div className="range-row">
+          <input
+            type="range"
+            min={LETTER_SPACING_RANGE.min}
+            max={LETTER_SPACING_RANGE.max}
+            step={LETTER_SPACING_RANGE.step}
+            value={s.letterSpacing}
+            onChange={(e) => updateSettings({ letterSpacing: Number(e.target.value) })}
+          />
+          <output>{s.letterSpacing}px</output>
         </div>
       </Field>
 

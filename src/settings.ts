@@ -8,6 +8,10 @@ export interface Settings {
   theme: string;
   fontFamily: string;
   fontSize: number;
+  /** Altura da linha como múltiplo do tamanho da fonte (1 = padrão). */
+  lineHeight: number;
+  /** Espaço extra entre as letras, em pixels. */
+  letterSpacing: number;
   cursorBlink: boolean;
   /** Formato do cursor da linha de digitação. */
   cursorStyle: CursorStyle;
@@ -28,6 +32,8 @@ export const DEFAULTS: Settings = {
   theme: DEFAULT_THEME_ID,
   fontFamily: "CaskaydiaCove Nerd Font Mono",
   fontSize: 14,
+  lineHeight: 1,
+  letterSpacing: 0,
   cursorBlink: true,
   cursorStyle: "block",
   cursorColor: "",
@@ -37,6 +43,14 @@ export const DEFAULTS: Settings = {
 };
 
 export const FONT_SIZE_RANGE = { min: 10, max: 24 } as const;
+export const LINE_HEIGHT_RANGE = { min: 1, max: 1.6, step: 0.05 } as const;
+export const LETTER_SPACING_RANGE = { min: 0, max: 4, step: 0.5 } as const;
+
+/** Número do disco preso ao intervalo; lixo cai no padrão. */
+function clampTo(value: unknown, range: { min: number; max: number }, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.min(range.max, Math.max(range.min, n)) : fallback;
+}
 const FONT_FALLBACKS = '"Cascadia Code", Consolas, monospace';
 
 /** Monta a lista de fontes do CSS a partir do nome digitado (sem deixar aspas/chaves escaparem). */
@@ -58,6 +72,8 @@ export function normalizeSettings(raw: unknown): Settings {
     fontSize: Number.isFinite(size)
       ? Math.min(FONT_SIZE_RANGE.max, Math.max(FONT_SIZE_RANGE.min, Math.round(size)))
       : DEFAULTS.fontSize,
+    lineHeight: clampTo(input.lineHeight, LINE_HEIGHT_RANGE, DEFAULTS.lineHeight),
+    letterSpacing: clampTo(input.letterSpacing, LETTER_SPACING_RANGE, DEFAULTS.letterSpacing),
     cursorBlink: typeof input.cursorBlink === "boolean" ? input.cursorBlink : DEFAULTS.cursorBlink,
     cursorStyle: CURSOR_STYLES.includes(input.cursorStyle as CursorStyle)
       ? (input.cursorStyle as CursorStyle)
