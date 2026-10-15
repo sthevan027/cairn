@@ -9,6 +9,7 @@ import type { GitInfo } from "./promptConfig";
 import { fontStack, getSettings, subscribeSettings } from "./settings";
 import { getTheme } from "./themes";
 import { pathsToInput, quotePath, toPtyPaste } from "./paste";
+import { isClearCommand } from "./clear";
 
 /** Espelha `clipboard::Clip` no Rust. */
 type Clip = { kind: "text"; value: string } | { kind: "image"; value: string } | { kind: "empty" };
@@ -237,10 +238,16 @@ export class Session {
       e.stopPropagation();
       if (!this.copySelection()) void this.pasteFromClipboard();
     };
+    // Ctrl+L limpa a tela de blocos (sem comando rodando); a tecla continua indo pro shell, que redesenha o prompt.
+    const onClearKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "l" && this.isIdle()) this.clearBlocks();
+    };
+    els.scroll.addEventListener("keydown", onClearKey, { capture: true });
     els.scroll.addEventListener("keydown", onPasteKey, { capture: true });
     els.scroll.addEventListener("paste", onNativePaste, { capture: true });
     els.scroll.addEventListener("contextmenu", onContextMenu, { capture: true });
     this.disposers.push(() => {
+      els.scroll.removeEventListener("keydown", onClearKey, { capture: true });
       els.scroll.removeEventListener("keydown", onPasteKey, { capture: true });
       els.scroll.removeEventListener("paste", onNativePaste, { capture: true });
       els.scroll.removeEventListener("contextmenu", onContextMenu, { capture: true });
@@ -343,6 +350,14 @@ export class Session {
     this.focusActive();
   }
 
+  /** Tira todos os blocos da lista (e as cópias estáticas). Só faz sentido com nenhum comando rodando. */
+  clearBlocks() {
+    this.statics.forEach((block) => block.term.dispose());
+    this.statics.clear();
+    this.blocks = [];
+    this.emit();
+  }
+
   /** Arquivos soltos na aba: os caminhos entram no prompt, sem Enter. */
   insertPaths(paths: string[]) {
     if (paths.length === 0) return;
@@ -394,6 +409,14 @@ export class Session {
 
   private startBlock(command: string) {
     if (this.current) this.finishBlock(null, null);
+    if (isClearCommand(command)) {
+      // Pedido de limpar: o shell limpa a tela do terminal sombra e os blocos anteriores saem junto.
+      this.clearBlocks();
+      this.liveStart?.dispose();
+      this.liveStart = this.shadow.registerMarker(0);
+      this.scheduleLayout();
+      return;
+    }
     const block: Block = {
       id: ++this.seq,
       command,
