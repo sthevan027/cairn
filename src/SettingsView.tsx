@@ -14,6 +14,8 @@ import {
   useSettings,
 } from "./settings";
 import { THEMES, getTheme } from "./themes";
+import { statusHint } from "./updateStatus";
+import { useUpdateStatus, type UseUpdateStatus } from "./useUpdateStatus";
 
 type Page = "appearance" | "terminal" | "prompt" | "ai" | "shortcuts" | "about";
 
@@ -287,8 +289,30 @@ function ShortcutsPage() {
   );
 }
 
+function UpdateRow({ update }: { update: UseUpdateStatus }) {
+  const { state, checkNow, install } = update;
+  const busy = state.checking || state.installing;
+  const label = state.installing
+    ? "Atualizando…"
+    : state.checking
+      ? "Verificando…"
+      : state.availableVersion
+        ? "Atualizar agora"
+        : "Verificar agora";
+  const onClick = state.availableVersion ? install : checkNow;
+  return (
+    <Field label="Atualizações" help={statusHint(state)}>
+      <button className="updbtn" onClick={onClick} disabled={busy}>
+        {label}
+      </button>
+      {state.error && <p className="upderr">{state.error}</p>}
+    </Field>
+  );
+}
+
 function AboutPage() {
   const [version, setVersion] = useState("");
+  const update = useUpdateStatus();
   useEffect(() => {
     getVersion()
       .then(setVersion)
@@ -310,6 +334,7 @@ function AboutPage() {
       <p className="muted">
         As configurações ficam no armazenamento local do app; a chave da Anthropic, no Credential Manager do Windows.
       </p>
+      <UpdateRow update={update} />
     </div>
   );
 }

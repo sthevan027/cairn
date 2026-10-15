@@ -1,7 +1,7 @@
 {
   "name": "cairn",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Terminal estilo Warp (blocos de comando + IA no prompt) — projeto de estudo",
   "license": "MIT",
   "author": "Sthevan Santos",
@@ -15,6 +15,8 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.3",
+    "@tauri-apps/plugin-process": "^2",
+    "@tauri-apps/plugin-updater": "^2",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-serialize": "^0.14.0",
     "@xterm/xterm": "^6.0.0",

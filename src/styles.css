@@ -891,6 +891,32 @@ kbd {
   line-height: 1.55;
 }
 
+.updbtn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.updbtn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.updbtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.upderr {
+  color: var(--fail);
+  font-size: 12.5px;
+}
+
 .muted {
   color: var(--muted);
 }
