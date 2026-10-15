@@ -1,24 +1,12 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import iconUrl from "../assets/icon.svg";
 import { CloseIcon } from "./icons";
-import { PromptStudio } from "./PromptStudio";
+import { CustomizePage } from "./CustomizePage";
 import type { Session } from "./session";
-import {
-  type CursorStyle,
-  type NewTabPosition,
-  type SidebarSide,
-  SIDEBAR_WIDTH_RANGE,
-  DEFAULT_AI_MODEL,
-  FONT_SIZE_RANGE,
-  LETTER_SPACING_RANGE,
-  LINE_HEIGHT_RANGE,
-  fontStack,
-  resetSettings,
-  updateSettings,
-  useSettings,
-} from "./settings";
+import { Row, Section } from "./SettingsUi";
+import { DEFAULT_AI_MODEL, resetSettings, updateSettings, useSettings } from "./settings";
 import {
   ACTIONS,
   DEFAULT_SHORTCUTS,
@@ -28,30 +16,16 @@ import {
   recorder,
   type ActionId,
 } from "./shortcuts";
-import { THEMES, getTheme } from "./themes";
 import { statusHint } from "./updateStatus";
 import { useUpdateStatus, type UseUpdateStatus } from "./useUpdateStatus";
 
-type Page = "appearance" | "terminal" | "layout" | "prompt" | "ai" | "shortcuts" | "about";
+type Page = "customize" | "ai" | "shortcuts" | "about";
 
 const PAGES: Array<{ id: Page; label: string }> = [
-  { id: "appearance", label: "Aparência" },
-  { id: "terminal", label: "Terminal" },
-  { id: "layout", label: "Abas e barra lateral" },
-  { id: "prompt", label: "Prompt" },
+  { id: "customize", label: "Personalização" },
   { id: "ai", label: "IA" },
   { id: "shortcuts", label: "Atalhos" },
   { id: "about", label: "Sobre" },
-];
-
-const FONT_PRESETS = [
-  "CaskaydiaCove Nerd Font Mono",
-  "Cascadia Code",
-  "Cascadia Mono",
-  "JetBrains Mono",
-  "Fira Code",
-  "Consolas",
-  "Courier New",
 ];
 
 const AI_MODELS = [
@@ -62,250 +36,11 @@ const AI_MODELS = [
 
 /** Teclas que não dá para mudar: dependem do shell ou do sistema. */
 const FIXED_SHORTCUTS: Array<[string, string]> = [
-  ["Ctrl+C", "copia a seleção; sem seleção, interrompe o comando"],
-  ["Ctrl+V / Shift+Insert / botão direito", "cola (texto, ou o caminho de uma imagem copiada)"],
-  ["Ctrl+L", "limpa a tela de blocos"],
-  ["Esc", "fecha a barra de IA/busca ou as configurações"],
+  ["Ctrl+C", "Copia a seleção; sem seleção, interrompe o comando"],
+  ["Ctrl+V / Shift+Insert / botão direito", "Cola o texto, ou o caminho de uma imagem copiada"],
+  ["Ctrl+L", "Limpa a tela de blocos"],
+  ["Esc", "Fecha a barra de IA ou busca, ou as configurações"],
 ];
-
-interface ShellOption {
-  name: string;
-  path: string;
-}
-
-function Field({ label, help, children }: { label: string; help?: string; children: ReactNode }) {
-  return (
-    <div className="field">
-      <div className="field-label">{label}</div>
-      {children}
-      {help && <div className="field-help">{help}</div>}
-    </div>
-  );
-}
-
-function AppearancePage() {
-  const s = useSettings();
-  const theme = getTheme(s.theme);
-  const [font, setFont] = useState(s.fontFamily);
-  useEffect(() => setFont(s.fontFamily), [s.fontFamily]);
-
-  return (
-    <>
-      <Field label="Tema">
-        <div className="theme-grid">
-          {THEMES.map((t) => (
-            <button
-              key={t.id}
-              className={`theme-card${t.id === s.theme ? " selected" : ""}`}
-              style={{ background: t.ui.bg, color: t.ui.fg, borderColor: t.id === s.theme ? t.ui.accent : t.ui.border }}
-              onClick={() => updateSettings({ theme: t.id })}
-            >
-              <span className="theme-bars">
-                <i style={{ background: t.ui.accent }} />
-                <i style={{ background: t.ui.ok }} />
-                <i style={{ background: t.ui.fail }} />
-                <i style={{ background: t.ui.running }} />
-              </span>
-              <span className="theme-name">{t.name}</span>
-            </button>
-          ))}
-        </div>
-      </Field>
-
-      <Field label="Fonte" help="Use o nome de uma fonte monoespaçada instalada. Se não existir, cai em Cascadia Code ou Consolas.">
-        <input
-          className="text-input"
-          list="font-presets"
-          value={font}
-          spellCheck={false}
-          onChange={(e) => setFont(e.target.value)}
-          onBlur={() => updateSettings({ fontFamily: font })}
-          onKeyDown={(e) => e.key === "Enter" && updateSettings({ fontFamily: font })}
-        />
-        <datalist id="font-presets">
-          {FONT_PRESETS.map((f) => (
-            <option key={f} value={f} />
-          ))}
-        </datalist>
-      </Field>
-
-      <Field label="Tamanho da fonte" help="Vale para o texto novo; blocos já terminados mantêm a largura de quando foram gerados.">
-        <div className="range-row">
-          <input
-            type="range"
-            min={FONT_SIZE_RANGE.min}
-            max={FONT_SIZE_RANGE.max}
-            value={s.fontSize}
-            onChange={(e) => updateSettings({ fontSize: Number(e.target.value) })}
-          />
-          <output>{s.fontSize}px</output>
-        </div>
-      </Field>
-
-      <Field label="Altura da linha" help="1 é o padrão. Valores maiores deixam o texto mais arejado.">
-        <div className="range-row">
-          <input
-            type="range"
-            min={LINE_HEIGHT_RANGE.min}
-            max={LINE_HEIGHT_RANGE.max}
-            step={LINE_HEIGHT_RANGE.step}
-            value={s.lineHeight}
-            onChange={(e) => updateSettings({ lineHeight: Number(e.target.value) })}
-          />
-          <output>{s.lineHeight.toFixed(2)}</output>
-        </div>
-      </Field>
-
-      <Field label="Espaço entre letras">
-        <div className="range-row">
-          <input
-            type="range"
-            min={LETTER_SPACING_RANGE.min}
-            max={LETTER_SPACING_RANGE.max}
-            step={LETTER_SPACING_RANGE.step}
-            value={s.letterSpacing}
-            onChange={(e) => updateSettings({ letterSpacing: Number(e.target.value) })}
-          />
-          <output>{s.letterSpacing}px</output>
-        </div>
-      </Field>
-
-      <Field label="Cursor piscando">
-        <label className="switch">
-          <input
-            type="checkbox"
-            checked={s.cursorBlink}
-            onChange={(e) => updateSettings({ cursorBlink: e.target.checked })}
-          />
-          <span className="switch-track" />
-        </label>
-      </Field>
-
-      <Field label="Formato do cursor">
-        <select
-          value={s.cursorStyle}
-          onChange={(e) => updateSettings({ cursorStyle: e.target.value as CursorStyle })}
-        >
-          <option value="block">Bloco</option>
-          <option value="underline">Sublinhado</option>
-          <option value="bar">Barra</option>
-        </select>
-      </Field>
-
-      <Field label="Cor do cursor" help="Vazio usa a cor do tema.">
-        <div className="range-row">
-          <input
-            type="color"
-            value={s.cursorColor || theme.term.cursor || "#ffffff"}
-            onChange={(e) => updateSettings({ cursorColor: e.target.value })}
-          />
-          <button type="button" onClick={() => updateSettings({ cursorColor: "" })} disabled={!s.cursorColor}>
-            usar do tema
-          </button>
-        </div>
-      </Field>
-
-      <div
-        className="font-preview"
-        style={{
-          background: theme.term.background,
-          color: theme.term.foreground,
-          fontFamily: fontStack(s.fontFamily),
-          fontSize: s.fontSize,
-        }}
-      >
-        <div>
-          <span style={{ color: theme.term.magenta }}>~</span> <span style={{ color: theme.term.cyan }}>cairn</span>{" "}
-          <span style={{ color: theme.term.yellow }}>main</span>
-        </div>
-        <div>
-          <span style={{ color: theme.term.green }}>❯</span> git status
-        </div>
-        <div style={{ color: theme.term.red }}>modified: src/session.ts</div>
-        <div style={{ color: theme.term.green }}>25 testes passando</div>
-      </div>
-    </>
-  );
-}
-
-function TerminalPage() {
-  const s = useSettings();
-  const [shells, setShells] = useState<ShellOption[]>([]);
-  useEffect(() => {
-    invoke<ShellOption[]>("available_shells")
-      .then(setShells)
-      .catch(() => setShells([]));
-  }, []);
-
-  return (
-    <Field label="Shell padrão" help="Vale para as abas novas (o botão + e Ctrl+Shift+T). Pelo botão direito do + dá pra escolher outro só daquela vez.">
-      <select
-        className="select"
-        value={s.defaultShell ?? ""}
-        onChange={(e) => updateSettings({ defaultShell: e.target.value || null })}
-      >
-        <option value="">Automático (PowerShell 7 se existir)</option>
-        {shells.map((shell) => (
-          <option key={shell.path} value={shell.path}>
-            {shell.name}
-          </option>
-        ))}
-      </select>
-    </Field>
-  );
-}
-
-function LayoutPage() {
-  const s = useSettings();
-  return (
-    <>
-      <Field label="Lado da barra lateral">
-        <select
-          value={s.sidebarSide}
-          onChange={(e) => updateSettings({ sidebarSide: e.target.value as SidebarSide })}
-        >
-          <option value="left">Esquerda</option>
-          <option value="right">Direita</option>
-        </select>
-      </Field>
-
-      <Field label="Largura da barra lateral" help="Vale com a barra aberta; recolhida, ela tem largura fixa.">
-        <div className="range-row">
-          <input
-            type="range"
-            min={SIDEBAR_WIDTH_RANGE.min}
-            max={SIDEBAR_WIDTH_RANGE.max}
-            step={SIDEBAR_WIDTH_RANGE.step}
-            value={s.sidebarWidth}
-            onChange={(e) => updateSettings({ sidebarWidth: Number(e.target.value) })}
-          />
-          <output>{s.sidebarWidth}px</output>
-        </div>
-      </Field>
-
-      <Field label="Onde entra a aba nova">
-        <select
-          value={s.newTabPosition}
-          onChange={(e) => updateSettings({ newTabPosition: e.target.value as NewTabPosition })}
-        >
-          <option value="end">No fim da lista</option>
-          <option value="afterCurrent">Logo depois da aba atual</option>
-        </select>
-      </Field>
-
-      <Field label="Fechar a aba quando o shell terminar" help="Com isso desligado, `exit` deixa a aba aberta com o aviso de processo encerrado.">
-        <label className="switch">
-          <input
-            type="checkbox"
-            checked={s.closeOnExit}
-            onChange={(e) => updateSettings({ closeOnExit: e.target.checked })}
-          />
-          <span className="switch-track" />
-        </label>
-      </Field>
-    </>
-  );
-}
 
 function AiPage() {
   const s = useSettings();
@@ -346,44 +81,53 @@ function AiPage() {
   const model = AI_MODELS.find((m) => m.id === s.aiModel);
   return (
     <>
-      <Field label="Modelo" help={model?.hint ?? "modelo personalizado"}>
-        <select className="select" value={s.aiModel} onChange={(e) => updateSettings({ aiModel: e.target.value })}>
-          {AI_MODELS.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-            </option>
-          ))}
-          {!model && <option value={s.aiModel}>{s.aiModel}</option>}
-        </select>
-      </Field>
+      <Section id="sec-ia" title="Claude (Anthropic)">
+        <Row label="Modelo" help={model?.hint ?? "modelo personalizado"}>
+          <select
+            className="select"
+            aria-label="Modelo de IA"
+            value={s.aiModel}
+            onChange={(e) => updateSettings({ aiModel: e.target.value })}
+          >
+            {AI_MODELS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+            {!model && <option value={s.aiModel}>{s.aiModel}</option>}
+          </select>
+        </Row>
 
-      <Field
-        label="Chave da Anthropic"
-        help="Fica no Credential Manager do Windows, nunca em arquivo. A variável ANTHROPIC_API_KEY também funciona."
-      >
-        <div className="key-status">
-          {hasKey === null ? "verificando…" : hasKey ? "● uma chave está configurada" : "○ nenhuma chave configurada"}
-        </div>
-        <div className="key-row">
-          <input
-            className="text-input"
-            type="password"
-            value={draft}
-            placeholder="cole a chave (sk-ant-...)"
-            autoComplete="off"
-            spellCheck={false}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && void save()}
-          />
-          <button className="btn primary" disabled={!draft.trim()} onClick={() => void save()}>
-            Guardar
-          </button>
-          <button className="btn" disabled={!hasKey} onClick={() => void remove()}>
-            Remover
-          </button>
-        </div>
-        {message && <div className="field-help">{message}</div>}
-      </Field>
+        <Row
+          label="Chave de API"
+          help="Fica no Credential Manager do Windows, nunca em arquivo. A variável ANTHROPIC_API_KEY também funciona."
+          stacked
+        >
+          <div className="key-status" role="status">
+            {hasKey === null ? "Verificando…" : hasKey ? "● Uma chave está configurada" : "○ Nenhuma chave configurada"}
+          </div>
+          <div className="key-row">
+            <input
+              className="text-input"
+              type="password"
+              aria-label="Chave da Anthropic"
+              value={draft}
+              placeholder="Cole a chave (sk-ant-...)"
+              autoComplete="off"
+              spellCheck={false}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && void save()}
+            />
+            <button className="btn primary" disabled={!draft.trim()} onClick={() => void save()}>
+              Guardar
+            </button>
+            <button className="btn" disabled={!hasKey} onClick={() => void remove()}>
+              Remover
+            </button>
+          </div>
+          {message && <div className="row-help">{message}</div>}
+        </Row>
+      </Section>
     </>
   );
 }
@@ -439,55 +183,51 @@ function ShortcutsPage() {
 
   return (
     <>
-      <table className="shortcuts">
-        <tbody>
-          {ACTIONS.map((a) => (
-            <tr key={a.id}>
-              <td>
-                <button
-                  type="button"
-                  className="kbd-btn"
-                  title="clique e aperte a nova combinação (Esc cancela)"
-                  onClick={() => {
-                    setMessage(null);
-                    setRecording(recording === a.id ? null : a.id);
-                  }}
-                >
-                  <kbd>{recording === a.id ? "aperte as teclas…" : s.shortcuts[a.id] || "sem atalho"}</kbd>
+      <Section id="sec-atalhos" title="Atalhos do app">
+        {ACTIONS.map((a) => (
+          <Row key={a.id} label={a.label}>
+            <div className="key-cell">
+              <button
+                type="button"
+                className={`kbd-btn${recording === a.id ? " recording" : ""}`}
+                title="Clique e aperte a nova combinação (Esc cancela)"
+                aria-label={`Atalho de ${a.label}: ${s.shortcuts[a.id] || "sem atalho"}. Clique para mudar.`}
+                onClick={() => {
+                  setMessage(null);
+                  setRecording(recording === a.id ? null : a.id);
+                }}
+              >
+                <kbd>{recording === a.id ? "aperte as teclas…" : s.shortcuts[a.id] || "sem atalho"}</kbd>
+              </button>
+              {s.shortcuts[a.id] !== a.default && (
+                <button type="button" className="btn ghost" onClick={() => reset(a.id)}>
+                  Restaurar
                 </button>
-              </td>
-              <td>{a.label}</td>
-              <td>
-                {s.shortcuts[a.id] !== a.default && (
-                  <button type="button" onClick={() => reset(a.id)}>
-                    restaurar
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {message && <p className="upderr">{message}</p>}
-      <h3>Fixos</h3>
-      <table className="shortcuts">
-        <tbody>
-          {FIXED_SHORTCUTS.map(([keys, what]) => (
-            <tr key={keys}>
-              <td>
-                <kbd>{keys}</kbd>
-              </td>
-              <td>{what}</td>
-              <td />
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              )}
+            </div>
+          </Row>
+        ))}
+        {message && (
+          <p className="upderr" role="alert">
+            {message}
+          </p>
+        )}
+      </Section>
+
+      <Section id="sec-fixos" title="Fixos">
+        {FIXED_SHORTCUTS.map(([keys, what]) => (
+          <Row key={keys} label={what}>
+            <div className="key-cell">
+              <kbd>{keys}</kbd>
+            </div>
+          </Row>
+        ))}
+      </Section>
     </>
   );
 }
 
-function UpdateRow({ update }: { update: UseUpdateStatus }) {
+function UpdateRow({ update, version }: { update: UseUpdateStatus; version: string }) {
   const { state, checkNow, install } = update;
   const busy = state.checking || state.installing;
   const label = state.installing
@@ -499,12 +239,18 @@ function UpdateRow({ update }: { update: UseUpdateStatus }) {
         : "Verificar agora";
   const onClick = state.availableVersion ? install : checkNow;
   return (
-    <Field label="Atualizações" help={statusHint(state)}>
-      <button className="updbtn" onClick={onClick} disabled={busy}>
-        {label}
-      </button>
-      {state.error && <p className="upderr">{state.error}</p>}
-    </Field>
+    <Section id="sec-atualizacoes" title="Atualizações">
+      <Row label={version ? `Cairn v${version}` : "Cairn"} help={statusHint(state)}>
+        <button className="updbtn" onClick={onClick} disabled={busy}>
+          {label}
+        </button>
+      </Row>
+      {state.error && (
+        <p className="upderr" role="alert">
+          {state.error}
+        </p>
+      )}
+    </Section>
   );
 }
 
@@ -532,13 +278,13 @@ function AboutPage() {
       <p className="muted">
         As configurações ficam no armazenamento local do app; a chave da Anthropic, no Credential Manager do Windows.
       </p>
-      <UpdateRow update={update} />
+      <UpdateRow update={update} version={version} />
     </div>
   );
 }
 
 export function SettingsView({ onClose, activeSession }: { onClose: () => void; activeSession: Session | null }) {
-  const [page, setPage] = useState<Page>("appearance");
+  const [page, setPage] = useState<Page>("customize");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -571,11 +317,8 @@ export function SettingsView({ onClose, activeSession }: { onClose: () => void; 
             <CloseIcon />
           </button>
         </header>
-        <div className={`settings-content${page === "prompt" ? " wide" : ""}`}>
-          {page === "appearance" && <AppearancePage />}
-          {page === "terminal" && <TerminalPage />}
-          {page === "layout" && <LayoutPage />}
-          {page === "prompt" && <PromptStudio session={activeSession} />}
+        <div className={`settings-content${page === "customize" ? " wide" : ""}`}>
+          {page === "customize" && <CustomizePage session={activeSession} />}
           {page === "ai" && <AiPage />}
           {page === "shortcuts" && <ShortcutsPage />}
           {page === "about" && <AboutPage />}

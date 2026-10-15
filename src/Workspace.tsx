@@ -122,15 +122,19 @@ export function Workspace() {
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     let cancelled = false;
-    getCurrentWebview()
-      .onDragDropEvent((event) => {
-        if (event.payload.type === "drop") activeRef.current?.insertPaths(event.payload.paths);
-      })
-      .then((fn) => {
-        if (cancelled) fn();
-        else unlisten = fn;
-      })
-      .catch(() => {});
+    try {
+      getCurrentWebview()
+        .onDragDropEvent((event) => {
+          if (event.payload.type === "drop") activeRef.current?.insertPaths(event.payload.paths);
+        })
+        .then((fn) => {
+          if (cancelled) fn();
+          else unlisten = fn;
+        })
+        .catch(() => {});
+    } catch {
+      // Fora do Tauri (a interface aberta num navegador) não existe webview: só não há arrastar arquivos.
+    }
     return () => {
       cancelled = true;
       unlisten?.();
