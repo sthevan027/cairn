@@ -1,14 +1,22 @@
 # Cairn
 
-Terminal próprio, estilo Warp — projeto de **estudo/uso pessoal**, não é produto.
+Terminal para Windows com **blocos de comando** e **IA no prompt**, feito para ser moldado ao gosto de quem o usa.
+É o terminal de uso diário do Sthevan, inspirado no [Warp](https://www.warp.dev/).
 
 > **Cairn** é a pilha de pedras que marca uma trilha: cada comando vira um bloco empilhado
 > que deixa o rastro do caminho. (Antes era chamado `warp-clone`.)
 
 ## Objetivo
 
-Aprender, na prática, como um terminal moderno com blocos de comando e IA no prompt
-funciona por dentro, construindo uma versão simplificada do [Warp](https://www.warp.dev/).
+Ser um terminal de verdade, do jeito e do gosto de quem o usa, e funcional no dia a dia: prompt, tema, cursor,
+texto, atalhos, barra lateral e abas são personalizáveis ao vivo. O contexto do produto (usuário, posicionamento,
+restrições e princípios) está em [PRODUCT.md](PRODUCT.md).
+
+Duas restrições guiam as decisões:
+
+- **Windows primeiro.** É a plataforma de referência. Linux é uma intenção para depois e ainda não foi tentado.
+- **Terminal de verdade.** O shell roda num PTY real; o app se constrói em cima da sessão e nunca reinterpreta
+  um comando.
 
 ## Stack
 
@@ -19,16 +27,19 @@ funciona por dentro, construindo uma versão simplificada do [Warp](https://www.
 
 Mesmo caminho de stack já usado no focusbrew.
 
-## O que esse clone pretende ensinar
+## Como funciona por dentro
 
-- **PTY no Windows** (ConPTY) — rodar PowerShell/cmd de verdade dentro do app.
-- **Emulação de terminal** — via xterm.js em vez de renderizar na mão.
-- **Blocos** — separar cada comando + saída em um bloco copiável/recolhível, via
-  hooks de shell (não regex/heurística de prompt).
-- **IA no prompt** — "descreve o que quer" → comando sugerido (API da Anthropic).
+- **PTY no Windows** (ConPTY) — roda PowerShell, cmd ou Git Bash de verdade dentro do app.
+- **Emulação de terminal** — via xterm.js, sem renderizar na mão.
+- **Blocos** — cada comando + saída vira um bloco copiável e recolhível, por hooks do shell (marcadores OSC),
+  e não por heurística sobre o texto do prompt.
+- **IA no prompt** — "descreve o que quer" → comando sugerido (API da Anthropic), colado sem Enter.
 
 ## Documentação
 
+- [PRODUCT.md](PRODUCT.md) — contexto do produto: quem usa, posicionamento, restrições e princípios.
+- [docs/loja-de-extensoes.md](docs/loja-de-extensoes.md) — spec (rascunho, nada implementado) de uma loja de
+  extensões: temas e presets de prompt, com índice assinado.
 - [docs/pesquisa-warp.md](docs/pesquisa-warp.md) — como o Warp real é feito (stack,
   arquitetura de renderização, PTY/shell integration, modelo de blocos) e o que disso
   é aplicável aqui.
@@ -41,31 +52,48 @@ Mesmo caminho de stack já usado no focusbrew.
 
 ## Status
 
-As 4 fases estão implementadas e validadas no Windows (PowerShell 7 e Git Bash):
+As 4 fases do plano estão implementadas e validadas no Windows (PowerShell 7 e Git Bash):
 
 1. PTY real (ConPTY via `portable-pty`) + xterm.js.
 2. Blocos de comando por marcadores OSC 9278 emitidos pelo shell (bash).
 3. O mesmo para PowerShell (embrulha `PSConsoleHostReadLine` e `prompt`, preserva `$?`).
 4. IA no prompt: `Ctrl+K`, descreve em português, a sugestão é colada no prompt **sem Enter**.
 
+Depois delas entraram: prompt personalizável com editor visual, temas, configurações em quatro abas, atalhos
+configuráveis, colagem de texto e imagem, arrastar arquivos para o prompt, atualização pelo próprio app e
+instalador assinado.
+
 **Ainda não verificado:** chamada real à API da Anthropic (sem chave na máquina de teste; o
 caminho HTTP foi coberto por um servidor mock), Windows PowerShell 5.1, zsh, programas de
-tela cheia (vim/less) e `Ctrl+C` dentro de blocos. Ver [docs/spec.md](docs/spec.md).
+tela cheia (vim/less), `Ctrl+C` dentro de blocos e qualquer uso fora do Windows. Ver
+[docs/spec.md](docs/spec.md).
 
 ## Atalhos e ações
+
+Os atalhos da primeira parte da tabela podem ser trocados em **Configurações → Atalhos** (clique no atalho e
+aperte a nova combinação; o app avisa se ela já está em uso). Valem como padrão:
 
 | Atalho / ação | O que faz |
 |---|---|
 | `Ctrl+K` | barra de IA: descreve o que quer, a sugestão é colada no prompt sem Enter |
 | `Ctrl+F` | busca nos blocos (comando e saída); Enter fecha mantendo o filtro, Esc limpa |
-| `Ctrl+C` | com texto selecionado com o mouse, copia; sem seleção, interrompe o comando como sempre |
-| `cmd` / `saída` (no cabeçalho do bloco) | copia o comando / a saída sem cores |
-| `repetir` | cola o comando do bloco no prompt (não executa) |
-| seta `▾` | recolhe/expande a saída do bloco |
 | `Ctrl+Shift+T` / `Ctrl+Shift+W` | nova aba / fecha a aba (Ctrl+T e Ctrl+W puros são do shell) |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | próxima / anterior aba |
 | `Ctrl+Shift+B` | recolhe/abre a barra lateral |
 | `Ctrl+,` (ou o botão no rodapé da barra) | abre as configurações |
+
+Fixos (dependem do shell ou do sistema):
+
+| Atalho / ação | O que faz |
+|---|---|
+| `Ctrl+C` | com texto selecionado com o mouse, copia; sem seleção, interrompe o comando como sempre |
+| `Ctrl+V` / `Shift+Insert` | cola. Texto entra no prompt (o shell recebe como colagem quando suporta); imagem copiada vira o caminho de um PNG temporário |
+| botão direito | com seleção, copia; sem seleção, cola |
+| arrastar arquivo para a janela | os caminhos entram no prompt da aba ativa, sem Enter |
+| `Ctrl+L`, `clear`, `cls`, `Clear-Host` | limpam a tela de blocos |
+| `cmd` / `saída` (no cabeçalho do bloco) | copia o comando / a saída sem cores |
+| `repetir` | cola o comando do bloco no prompt (não executa) |
+| seta `▾` | recolhe/expande a saída do bloco |
 | botão direito no `+` | escolhe o shell da nova aba (PowerShell 7, Windows PowerShell, Git Bash) |
 | duplo clique no título da aba | renomeia (vazio volta ao automático) |
 | barra lateral recolhida | vira uma coluna de ícones das abas (nome e branch no tooltip), com o `+` embaixo |
@@ -73,15 +101,25 @@ tela cheia (vim/less) e `Ctrl+C` dentro de blocos. Ver [docs/spec.md](docs/spec.
 
 ## Configurações e tema
 
-`Ctrl+,` abre a página de configurações (Aparência, Terminal, IA, Atalhos, Sobre). Tudo vale ao
-vivo e é lembrado entre execuções:
+`Ctrl+,` abre as configurações, em quatro abas. Tudo vale ao vivo e é lembrado entre execuções.
 
-- **Tema:** Cairn Night (padrão), Grafite e Dia (claro). Pinta a interface e a paleta do terminal.
-- **Fonte, tamanho e cursor piscando**, com prévia.
-- **Shell padrão** das abas novas e **modelo da IA** (Opus 5.5, Sonnet 5.5 ou Haiku 5.5); a chave da
-  Anthropic também é guardada/removida ali (Credential Manager).
+- **Personalização** — tudo que dá para moldar, numa página só, com uma **prévia fixa no topo** que mostra
+  fonte, espaçamento e cursor na hora, e atalhos para cada seção:
+  - **Tema:** Cairn Night (padrão), Grafite e Dia (claro). Pinta a interface e a paleta do terminal.
+  - **Texto:** fonte, tamanho, altura da linha e espaço entre letras (valem para o terminal todo).
+  - **Cursor:** formato (bloco, sublinhado ou barra), piscando ou não, e cor (ou a do tema).
+  - **Shell:** o shell padrão das abas novas.
+  - **Abas e barra lateral:** lado (esquerda ou direita), largura, onde entra a aba nova (no fim ou depois da
+    atual) e se a aba fecha sozinha quando o shell termina (`exit`).
+  - **Prompt:** o editor de widgets, descrito abaixo.
+- **IA** — modelo (Opus 5.5, Sonnet 5.5 ou Haiku 5.5) e a chave da Anthropic, guardada e removida ali
+  (Credential Manager).
+- **Atalhos** — troca dos atalhos do app, com aviso de conflito (ver a tabela acima).
+- **Sobre** — versão e atualização do app (ver "Atualização pelo app").
 
-### Prompt personalizável (aba "Prompt")
+Em janela estreita a navegação das configurações vira uma faixa no topo.
+
+### Prompt personalizável (seção "Prompt" da Personalização)
 
 Dois modos, escolhidos na página:
 
@@ -106,9 +144,11 @@ Limitação conhecida: no tema claro, um prompt com cores fixas pensadas pra fun
 ```
 bun install
 bun run tauri dev      # abre o app (shell padrão: pwsh)
-bun run test           # testes do frontend (separador de OSC)
-cd src-tauri && cargo test   # PTY, ConPTY, integrações de shell, IA (mock), Credential Manager
+bun run test           # testes do frontend (vitest)
+cd src-tauri && cargo test   # PTY, ConPTY, integrações de shell, IA (mock), Credential Manager, clipboard
 ```
+
+O `bun run tauri dev` abre uma janela de desenvolvimento separada e não mexe no app instalado.
 
 Variáveis de ambiente (todas opcionais):
 
@@ -133,8 +173,23 @@ embutido e o desinstalador saem `Valid`, com carimbo de tempo da DigiCert.
   SmartScreen.
 - O `cairn.exe` solto em `target/release` fica sem assinatura: o Tauri assina uma cópia na hora de empacotar.
   Para conferir, extraia o instalador (`7z x`) e rode `Get-AuthenticodeSignature` nos arquivos.
-- A cópia da versão atual fica em `releases/v0.1.0/` (fora do git).
+- A cópia de cada versão fica em `releases/v<versão>/` (fora do git).
 - Antes de gerar, feche o app de desenvolvimento (ele trava o `.exe`).
+
+## Atualização pelo app
+
+Em **Configurações → Sobre**, "Verificar agora" consulta a última release do GitHub
+(`releases/latest/download/latest.json`) e, havendo versão nova, vira "Atualizar agora". O app confere a
+assinatura da atualização com uma chave pública embutida (par próprio do Cairn, separado do certificado do
+Windows) antes de instalar. A versão 0.1.0 não tinha esse botão; a 0.2.0 em diante tem.
+
+Para publicar a próxima versão:
+
+1. Subir a versão nos três arquivos: `package.json`, `src-tauri/tauri.conf.json` e `src-tauri/Cargo.toml`.
+2. Gerar o instalador com `TAURI_SIGNING_PRIVATE_KEY` apontando para a chave privada do updater
+   (guardada fora do repositório) e `bun run tauri build`.
+3. Gerar o `latest.json` com `bun run tools/make-latest-json.ts <versão> "<notas>"`.
+4. Commit, tag `v<versão>`, push, e `gh release create v<versão> <instalador> <latest.json> --latest`.
 
 ## Ícone
 
