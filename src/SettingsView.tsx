@@ -6,6 +6,7 @@ import { CloseIcon } from "./icons";
 import { PromptStudio } from "./PromptStudio";
 import type { Session } from "./session";
 import {
+  type CursorStyle,
   DEFAULT_AI_MODEL,
   FONT_SIZE_RANGE,
   fontStack,
@@ -139,6 +140,30 @@ function AppearancePage() {
           />
           <span className="switch-track" />
         </label>
+      </Field>
+
+      <Field label="Formato do cursor">
+        <select
+          value={s.cursorStyle}
+          onChange={(e) => updateSettings({ cursorStyle: e.target.value as CursorStyle })}
+        >
+          <option value="block">Bloco</option>
+          <option value="underline">Sublinhado</option>
+          <option value="bar">Barra</option>
+        </select>
+      </Field>
+
+      <Field label="Cor do cursor" help="Vazio usa a cor do tema.">
+        <div className="range-row">
+          <input
+            type="color"
+            value={s.cursorColor || theme.term.cursor || "#ffffff"}
+            onChange={(e) => updateSettings({ cursorColor: e.target.value })}
+          />
+          <button type="button" onClick={() => updateSettings({ cursorColor: "" })} disabled={!s.cursorColor}>
+            usar do tema
+          </button>
+        </div>
       </Field>
 
       <div

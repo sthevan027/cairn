@@ -76,6 +76,20 @@ describe("temas", () => {
   });
 });
 
+describe("cursor", () => {
+  it("aceita formato conhecido e cor #rrggbb", () => {
+    const s = normalizeSettings({ cursorStyle: "bar", cursorColor: "#ff8800" });
+    expect(s.cursorStyle).toBe("bar");
+    expect(s.cursorColor).toBe("#ff8800");
+  });
+
+  it("formato inválido cai no bloco; cor fora do padrão cai em vazio (tema)", () => {
+    const s = normalizeSettings({ cursorStyle: "neon", cursorColor: "vermelho" });
+    expect(s.cursorStyle).toBe("block");
+    expect(s.cursorColor).toBe("");
+  });
+});
+
 describe("arquivo de configuração", () => {
   it("ida e volta preserva tudo, inclusive o prompt", async () => {
     const { parseSettingsFile, serializeSettings } = await import("./settings");

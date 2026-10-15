@@ -82,18 +82,20 @@ export interface SessionElements {
 /** Só o que muda a aparência do terminal; o resto das configurações (prompt, IA...) não conta. */
 function lookKey(): string {
   const s = getSettings();
-  return [s.theme, s.fontFamily, s.fontSize, s.cursorBlink].join("|");
+  return [s.theme, s.fontFamily, s.fontSize, s.cursorBlink, s.cursorStyle, s.cursorColor].join("|");
 }
 
 /** Opções do xterm a partir das configurações atuais (tema, fonte, tamanho, cursor). */
 function termOptions() {
   const s = getSettings();
+  const term = getTheme(s.theme).term;
   return {
     fontFamily: fontStack(s.fontFamily),
     fontSize: s.fontSize,
     cursorBlink: s.cursorBlink,
+    cursorStyle: s.cursorStyle,
     cursorInactiveStyle: "none" as const,
-    theme: getTheme(s.theme).term,
+    theme: s.cursorColor ? { ...term, cursor: s.cursorColor } : term,
   };
 }
 
@@ -584,6 +586,7 @@ export class Session {
       term.options.fontFamily = options.fontFamily;
       term.options.fontSize = options.fontSize;
       term.options.cursorBlink = blink;
+      term.options.cursorStyle = options.cursorStyle;
     };
     apply(this.shadow, options.cursorBlink);
     apply(this.meter.term, false);

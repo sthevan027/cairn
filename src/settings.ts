@@ -9,11 +9,18 @@ export interface Settings {
   fontFamily: string;
   fontSize: number;
   cursorBlink: boolean;
+  /** Formato do cursor da linha de digitação. */
+  cursorStyle: CursorStyle;
+  /** `#rrggbb` do cursor; vazio usa a cor do tema. */
+  cursorColor: string;
   /** Caminho do shell das abas novas; `null` deixa o backend escolher (pwsh se existir). */
   defaultShell: string | null;
   aiModel: string;
   prompt: PromptConfig;
 }
+
+export const CURSOR_STYLES = ["block", "underline", "bar"] as const;
+export type CursorStyle = (typeof CURSOR_STYLES)[number];
 
 export const DEFAULT_AI_MODEL = "claude-opus-5-5";
 
@@ -22,6 +29,8 @@ export const DEFAULTS: Settings = {
   fontFamily: "CaskaydiaCove Nerd Font Mono",
   fontSize: 14,
   cursorBlink: true,
+  cursorStyle: "block",
+  cursorColor: "",
   defaultShell: null,
   aiModel: DEFAULT_AI_MODEL,
   prompt: defaultPrompt(),
@@ -50,6 +59,10 @@ export function normalizeSettings(raw: unknown): Settings {
       ? Math.min(FONT_SIZE_RANGE.max, Math.max(FONT_SIZE_RANGE.min, Math.round(size)))
       : DEFAULTS.fontSize,
     cursorBlink: typeof input.cursorBlink === "boolean" ? input.cursorBlink : DEFAULTS.cursorBlink,
+    cursorStyle: CURSOR_STYLES.includes(input.cursorStyle as CursorStyle)
+      ? (input.cursorStyle as CursorStyle)
+      : DEFAULTS.cursorStyle,
+    cursorColor: typeof input.cursorColor === "string" && /^#[0-9a-fA-F]{6}$/.test(input.cursorColor) ? input.cursorColor : "",
     defaultShell: typeof input.defaultShell === "string" && input.defaultShell.trim() ? input.defaultShell : null,
     aiModel: text(input.aiModel, DEFAULTS.aiModel),
     prompt: normalizePrompt(input.prompt),
