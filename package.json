@@ -1,7 +1,7 @@
 {
   "name": "cairn",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Terminal estilo Warp (blocos de comando + IA no prompt) — projeto de estudo",
   "license": "MIT",
   "author": "Sthevan Santos",
